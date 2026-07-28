@@ -35,6 +35,12 @@
 | 编号 | 决策 | 状态 |
 |---|---|---|
 | 0001 | 桌面框架选 Tauri 而非 Electron | 已采纳 |
-| 0002 | 前端为主,不打包 Python 后端 | 已采纳 |
-| 0003 | 默认 AI Provider 选 Groq | 已采纳 |
+| 0002 | 前端为主,不打包 Python 后端 | **已废弃**（不适用于 VocabMaster） |
+| 0003 | 默认 AI Provider 选 Groq | **已废弃**（不适用于 VocabMaster） |
 | 0004 | Windows 打包用 NSIS 而非 MSI | 已采纳 |
+| 0005 | 选择前后端分离架构 | ✅ 已采纳 |
+| 0006 | 选择 Python FastAPI 作为后端框架 | ✅ 已采纳 |
+| 0007 | 选择 SQLite 作为数据库 | ✅ 已采纳 |
+| 0008 | 用户认证方案（JWT） | ✅ 已采纳 |
+
+> **注意**：ADR-0002 和 ADR-0003 来自 AI 录音助手项目，不适用于 VocabMaster（单词学习应用）。VocabMaster 的核心决策见 ADR-0005~0008。
