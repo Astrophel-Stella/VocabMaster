@@ -28,18 +28,12 @@ export default defineConfig({
       // 忽略 src-tauri，避免 Rust 变更触发前端热更
       ignored: ['**/src-tauri/**'],
     },
-    // ── Web 端开发代理：绕过浏览器 CORS 限制 ──
+    // ── Web 端开发代理：转发 API 请求到后端 ──
     // 桌面(Tauri)走原生 HTTP 插件，不经过这里
     proxy: {
-      '/proxy/groq': {
-        target: 'https://api.groq.com',
+      '/api': {
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/proxy\/groq/, ''),
-      },
-      '/proxy/openai': {
-        target: 'https://api.openai.com',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/proxy\/openai/, ''),
       },
     },
   },

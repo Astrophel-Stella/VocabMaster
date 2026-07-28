@@ -1,83 +1,101 @@
-import { useEffect, useState } from 'react'
-import { useApp } from '@/stores/appStore'
-import { getAdapter } from '@/adapters'
-import { RecordingPanel } from '@/components/RecordingPanel'
-import { TranscriptionView } from '@/components/TranscriptionView'
-import { AIProcessingPanel } from '@/components/AIProcessingPanel'
-import { HistoryList } from '@/components/HistoryList'
-import { SettingsPanel } from '@/components/SettingsPanel'
+import { useEffect } from 'react';
+import { useUserStore } from './stores/userStore';
+import { useWordStore } from './stores/wordStore';
+import { useProgress } from './hooks/useProgress';
+import { LoginPanel } from './components/LoginPanel';
+import { WordBankSelect } from './components/WordBankSelect';
+import { WordCard } from './components/WordCard';
+import { getAdapter } from './adapters';
 
 export default function App() {
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const error = useApp((s) => s.error)
-  const toast = useApp((s) => s.toast)
-  const setError = useApp((s) => s.setError)
-  const setToast = useApp((s) => s.setToast)
+  const { isAuthenticated, user, logout } = useUserStore();
+  const { selectedWordBank, loadWords, reset } = useWordStore();
+  const { loadProgress } = useProgress();
 
-  // toast 自动消失
+  const platform = getAdapter().name;
+
+  // Load words when word bank is selected
   useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 2500)
-    return () => clearTimeout(t)
-  }, [toast, setToast])
+    if (selectedWordBank) {
+      loadWords(selectedWordBank.id, 0, 100);
+      if (isAuthenticated) {
+        loadProgress(selectedWordBank.id);
+      }
+    }
+  }, [selectedWordBank, loadWords, loadProgress, isAuthenticated]);
 
-  const platform = getAdapter().name
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+    reset();
+  };
 
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPanel />;
+  }
+
+  // Show word bank selection if no bank selected
+  if (!selectedWordBank) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <header className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">📚</span>
+              <h1 className="text-xl font-bold text-gray-900">VocabMaster</h1>
+              <span className="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-600">
+                {platform === 'tauri' ? '桌面版' : 'Web'} · v1.0
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">你好, {user?.username}</span>
+              <button
+                onClick={handleLogout}
+                className="text-sm px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 border border-gray-200"
+              >
+                退出
+              </button>
+            </div>
+          </div>
+        </header>
+        <WordBankSelect />
+      </div>
+    );
+  }
+
+  // Show word learning card
   return (
-    <div className="h-full flex flex-col bg-slate-50 text-slate-900">
-      {/* 顶栏 */}
-      <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🎙️</span>
-          <h1 className="text-lg font-semibold">AI 录音助手</h1>
-          <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-400">
-            {platform === 'tauri' ? '桌面版' : 'Web'} · v0.1
-          </span>
-        </div>
-        <button
-          onClick={() => setSettingsOpen(true)}
-          className="text-sm px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 border border-slate-200"
-        >
-          ⚙ 设置
-        </button>
-      </header>
-
-      {/* 主体：左侧工作区 + 右侧历史 */}
-      <main className="flex-1 overflow-hidden flex">
-        <section className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-          <RecordingPanel />
-          <TranscriptionView />
-          <AIProcessingPanel />
-        </section>
-
-        <aside className="w-80 shrink-0 border-l border-slate-200 bg-slate-50 overflow-y-auto p-4">
-          <h2 className="text-sm font-medium text-slate-500 mb-3 px-1">录音历史</h2>
-          <HistoryList />
-        </aside>
-      </main>
-
-      {/* 错误提示 */}
-      {error && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 max-w-md">
-          <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl shadow">
-            <span className="text-sm flex-1">{error}</span>
-            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
-              ✕
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => reset()}
+              className="text-gray-400 hover:text-gray-600 mr-2"
+            >
+              ← 返回
+            </button>
+            <span className="text-2xl">📚</span>
+            <h1 className="text-xl font-bold text-gray-900">VocabMaster</h1>
+            <span className="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-600">
+              {selectedWordBank.name}
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-600">你好, {user?.username}</span>
+            <button
+              onClick={handleLogout}
+              className="text-sm px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 border border-gray-200"
+            >
+              退出
             </button>
           </div>
         </div>
-      )}
-
-      {/* toast */}
-      {toast && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
-          <div className="bg-slate-800 text-white text-sm px-4 py-2 rounded-lg shadow">
-            {toast}
-          </div>
-        </div>
-      )}
-
-      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      </header>
+      <main className="py-6">
+        <WordCard />
+      </main>
     </div>
-  )
+  );
 }

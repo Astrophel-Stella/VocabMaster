@@ -5,8 +5,8 @@
 
 ## 1. 项目速览(共享上下文入口)
 
-- **产品**:跨平台 AI 录音助手(录音 → 语音转文字 → AI 文本处理)。
-- **技术栈**:Tauri 2 + React/TypeScript 前端直连 + Groq(默认)。Rust 后端是薄壳,业务逻辑几乎全在 `frontend/src`。
+- **产品**:VocabMaster - 跨平台英语单词学习助手(单词展示 → 发音学习 → 标记掌握 → 进度追踪)。
+- **技术栈**:Tauri 2 + React/TypeScript 前端 + Python FastAPI 后端。
 - **单一真相源**(冲突时以这些为准):
   - 需求 → `specs/requirements.md`(每条有 `REQ-ID` + 验收条件)
   - 架构 → `docs/architecture.md`

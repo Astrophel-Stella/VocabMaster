@@ -1,116 +1,467 @@
-# 构建与自动化指南（BUILD）
+# 构建与部署指南
 
-本项目的开发 / 测试 / 构建 / 上线全流程说明，以及为「未来全自动化」预留的口子。
-
----
-
-## 自动化分层
-
-```
-本地脚本 (frontend/scripts/)   ← 一键：setup 自检
-        ↓ 复用
-npm scripts (frontend/)        ← 原子能力：dev / test / lint / typecheck / build / desktop:build
-        ↓ 调用
-GitHub Actions (.github/)      ← 全自动：push→CI，tag→构建打包→Release 草稿
-        ↓ 预留占位
-mac / linux / web / 移动端      ← 注释占位，取消注释即启用
-```
-
-设计原则：**每一层只依赖下一层的能力**，任何一层都能单独手动跑，也能被上层自动编排。
+本项目的开发 / 测试 / 构建 / 上线全流程说明，以及「人类闸口」确认机制。
 
 ---
 
-## 常用命令（在 `frontend/` 目录）
+## 📋 目录
 
-| 命令 | 作用 |
-|---|---|
-| `npm run setup` | 环境自检（Node / Rust / MSVC 是否就绪） |
-| `npm run dev` | Web 开发模式（浏览器，最快验证） |
-| `npm run desktop` | 桌面开发模式（Tauri，热更新） |
-| `npm run typecheck` | TypeScript 类型检查 |
-| `npm run lint` | ESLint 检查 |
-| `npm run test` | 单元测试（Vitest，跑一次） |
-| `npm run test:watch` | 单测监听模式 |
-| `npm run check` | typecheck + lint + test（提交前跑这个） |
-| `npm run desktop:build` | 打包 Windows 安装包（`.msi` / `.exe`） |
-| `npm run release:desktop` | check 通过后再打包（本地发布） |
+1. [环境要求](#环境要求)
+2. [开发环境](#开发环境)
+3. [生产部署](#生产部署)
+4. [Docker 部署](#docker-部署)
+5. [自动化流程](#自动化流程)
+6. [人类闸口](#人类闸口)
+7. [故障排查](#故障排查)
 
 ---
 
-## 本地全流程
+## 环境要求
+
+### 必需
+
+| 工具 | 版本 | 说明 |
+|------|------|------|
+| Python | 3.10+ | 后端运行环境 |
+| Node.js | 18+ | 前端构建工具 |
+| npm | 9+ | 包管理器 |
+
+### 可选
+
+| 工具 | 用途 |
+|------|------|
+| Rust | 桌面版打包（Tauri） |
+| Docker | 容器化部署 |
+| PostgreSQL | 生产环境数据库 |
+
+---
+
+## 开发环境
+
+### 方式一：一键启动（推荐）
 
 ```bash
+# Windows
+scripts\dev.bat
+
+# PowerShell
+.\scripts\dev.ps1
+
+# Linux/Mac
+./scripts/dev.sh
+```
+
+脚本会自动：
+1. ✅ 检查 Python / Node.js 是否安装
+2. ✅ 创建 Python 虚拟环境（如果不存在）
+3. ✅ 安装所有依赖
+4. ✅ 初始化数据库和示例数据
+5. ✅ 启动后端（http://localhost:8000）
+6. ✅ 启动前端（http://localhost:5173）
+7. ✅ 自动打开浏览器
+
+### 方式二：手动启动
+
+```bash
+# 终端 1：后端
+cd backend
+python -m venv venv
+venv\Scripts\activate  # Windows
+pip install -r requirements.txt
+python init_db.py      # 首次运行，初始化数据库
+uvicorn app.main:app --reload --port 8000
+
+# 终端 2：前端
 cd frontend
-npm install            # 首次；会生成 package-lock.json（请提交，CI 用 npm ci）
-npm run setup          # 确认环境
-npm run check          # 类型/lint/测试全绿
-npm run desktop:build  # 产出安装包
+npm install
+npm run dev
 ```
 
-构建产物位置：
-- 可执行文件（免安装，可直接双击）：`frontend/src-tauri/target/release/ai-recorder.exe`
-- 安装包（分发用）：`frontend/src-tauri/target/release/bundle/nsis/AI录音助手_<版本>_x64-setup.exe`
-
-> ⚠️ 首次桌面构建需先生成图标：`npm run setup` 确认环境后，
-> `node scripts/gen-icon.mjs && npx @tauri-apps/cli icon src-tauri/app-icon.png`
->
-> ⚠️ **打包格式用 NSIS 而非 MSI**：应用名含中文（“AI录音助手”）时，WiX 的
-> `light.exe` 会在生成 en-US 的 MSI 时失败（CJK 编码坑）。NSIS 对中文名支持良好，
-> 已在 `src-tauri/tauri.conf.json` 的 `bundle.targets` 设为 `["nsis"]`。
-> 若确需 MSI（企业域部署），需把 `productName` 改为纯 ASCII 名。
-
----
-
-## 自动上线（GitHub Actions）
-
-### CI（已启用）
-`.github/workflows/ci.yml` —— push / PR 到 `main` 自动跑 typecheck + lint + test。
-
-### 发布桌面版（已启用，Windows）
-`.github/workflows/release.yml` —— 打 tag 触发：
+### 环境检查
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+# Windows
+scripts\check-env.bat
+
+# 检查结果会显示哪些工具已安装
 ```
 
-自动构建 Windows 安装包并创建 **Release 草稿**（人工确认后正式发布 = 上线闸门）。
+### 停止服务
 
-### Web 部署（预留）
-`.github/workflows/deploy-web.yml` —— 默认仅手动触发，构建静态产物。
-部署目标（Pages / Vercel / Cloudflare）在文件内注释三选一。
+```bash
+# Windows
+scripts\stop.bat
 
----
-
-## 预留口子清单（未来启用）
-
-| 口子 | 位置 | 启用方式 |
-|---|---|---|
-| **mac / linux 桌面构建** | `release.yml` matrix | 取消注释对应 platform 行 |
-| **Linux 系统依赖** | `release.yml` | 取消注释 apt-get 步骤 |
-| **Web 自动部署** | `deploy-web.yml` | 取消注释 push 触发 + 选部署商 |
-| **代码签名 / 自动更新** | `release.yml` env | 配 `TAURI_SIGNING_*` secrets |
-| **新增 AI 供应商** | `src/providers/` | 加文件 + 注册进 `PROVIDERS` |
-| **新增 AI 处理能力** | `src/lib/aiTasks.ts` | 往 `AI_TASKS` 加一项 |
-| **新平台（React Native 等）** | `src/adapters/` | 实现 `PlatformAdapter` 接口 |
-| **API 密钥代理层** | 新建 `backend/`（可选） | 对外分发时隐藏密钥，替换直连 |
+# PowerShell
+.\scripts\stop.ps1
+```
 
 ---
 
-## 版本与发布约定
+## 生产部署
 
-- 版本号同时维护：`frontend/package.json` 与 `frontend/src-tauri/tauri.conf.json` 的 `version`。
-  （后续可加脚本自动同步，口子：`scripts/bump-version.mjs`）
-- tag 命名：`vX.Y.Z`，触发 `release.yml`。
-- Release 默认草稿，确认无误再点发布。
+### 架构选择
+
+```
+┌─────────────────┐
+│  方案一：本地部署  │
+│  适合：个人学习    │
+│  成本：0 元       │
+└─────────────────┘
+
+┌─────────────────┐
+│  方案二：云端部署  │
+│  适合：正式产品    │
+│  成本：0~50 元/月  │
+└─────────────────┘
+```
+
+### 方案一：本地部署
+
+**适用场景**：个人学习、单机使用
+
+**步骤**：
+1. 按上述「开发环境」启动
+2. 保持服务运行即可
+3. 数据存储在本地 SQLite 数据库
+
+**优点**：
+- ✅ 零成本
+- ✅ 数据隐私
+
+**缺点**：
+- ❌ 需要电脑一直开机
+- ❌ 不适合多用户
 
 ---
 
-## 生产 Web 版的密钥安全（重要）
+### 方案二：云端部署（推荐）
 
-当前 v1 密钥由用户自填、存本地，桌面版通过原生请求直连、密钥不入网页层。
-但**生产 Web 版**若直连 AI 供应商会暴露密钥，需要一个**代理层**：
+**适用场景**：正式产品、多人使用
 
-1. 新建 `backend/`（轻量：FastAPI / Node / Serverless 均可），保管密钥、转发请求。
-2. 前端 `src/adapters/web.ts` 把 `/proxy/*` 指向该代理而非 Vite dev 代理。
-3. 架构已为此预留：只改适配层，业务代码不动。
+#### 步骤 1：部署后端
+
+##### 选项 A：Railway（推荐新手）
+
+1. 访问 https://railway.app
+2. 使用 GitHub 登录
+3. 创建新项目 → 部署 GitHub 仓库
+4. 选择 `backend` 目录
+5. 配置环境变量：
+   ```
+   SECRET_KEY=<随机密钥>
+   DATABASE_URL=<Railway 提供的 PostgreSQL URL>
+   ```
+6. 自动部署完成
+7. 获得访问地址：`https://xxx.railway.app`
+
+**费用**：免费额度 + $5/月 Hobby 计划
+
+##### 选项 B：Render
+
+1. 访问 https://render.com
+2. 创建 Web Service
+3. 连接 GitHub 仓库
+4. 配置：
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+5. 配置环境变量（同上）
+6. 自动部署
+
+**费用**：免费
+
+##### 选项 C：自建服务器（Docker）
+
+见下方 [Docker 部署](#docker-部署) 章节
+
+---
+
+#### 步骤 2：配置前端生产环境
+
+1. 修改 `frontend/.env.production`：
+   ```env
+   VITE_API_URL=https://your-backend.railway.app
+   ```
+
+2. 构建前端：
+   ```bash
+   cd frontend
+   npm run build
+   ```
+
+3. 部署前端：
+   - **Vercel**：连接 GitHub，自动部署
+   - **Cloudflare Pages**：免费，快速
+   - **GitHub Pages**：免费
+
+---
+
+#### 步骤 3：配置 CORS
+
+修改后端环境变量，添加前端域名：
+
+```env
+# Railway / Render 环境变量
+CORS_ORIGINS=https://your-frontend.vercel.app,https://your-domain.com
+```
+
+---
+
+## Docker 部署
+
+### 一键部署（推荐）
+
+```bash
+# 克隆仓库
+git clone https://github.com/your-username/vocabmaster.git
+cd vocabmaster
+
+# 配置环境变量
+export SECRET_KEY=$(openssl rand -hex 32)
+
+# 启动所有服务
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+
+# 访问
+# 后端: http://localhost:8000
+# 前端: http://localhost:80
+```
+
+### 仅部署后端
+
+```bash
+# 使用生产配置
+docker-compose -f docker-compose.prod.yml up -d
+
+# 仅后端服务
+# 前端使用桌面版或单独部署
+```
+
+### Docker 常用命令
+
+```bash
+# 停止服务
+docker-compose down
+
+# 重启服务
+docker-compose restart
+
+# 查看状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs backend
+docker-compose logs frontend
+
+# 进入容器
+docker-compose exec backend bash
+
+# 清理数据（谨慎！）
+docker-compose down -v
+```
+
+---
+
+## 自动化流程
+
+### CI（持续集成）
+
+**触发条件**：push / PR 到 main 分支
+
+**自动执行**：
+1. ✅ 前端类型检查
+2. ✅ 前端 Lint
+3. ✅ 前端单元测试
+4. ✅ 后端单元测试
+
+**查看结果**：
+- GitHub → Actions → CI workflow
+
+### CD（持续部署）
+
+**触发条件**：push 到 main 分支 或 手动触发
+
+**自动执行**：
+1. ✅ 构建后端 Docker 镜像
+2. ✅ 部署到配置的平台
+3. ⚠️ **人类闸口**：检查部署日志
+
+### Release（版本发布）
+
+**触发条件**：打 tag（如 `v1.0.0`）
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+**自动执行**：
+1. ✅ 构建 Windows 安装包
+2. ✅ 创建 GitHub Release **草稿**
+3. ⚠️ **人类闸口**：确认后发布
+
+---
+
+## 人类闸口
+
+> 关键操作需要人工确认，防止错误发布。
+
+### 闸口 1：部署确认
+
+**场景**：自动部署到生产环境
+
+**确认内容**：
+- ✅ CI 测试全部通过
+- ✅ 检查变更内容（git diff）
+- ✅ 确认环境变量正确
+
+**操作**：
+- Railway/Render 会自动部署，但可以配置「Review App」先预览
+- 或使用 GitHub Environments 要求审批
+
+### 闸口 2：发布确认
+
+**场景**：发布新版本（Release）
+
+**流程**：
+1. 打 tag 触发自动构建
+2. GitHub 创建 **Release 草稿**
+3. **人工检查**：
+   - 安装包能否正常运行
+   - 版本号是否正确
+   - Release Notes 是否完整
+4. 点击 **Publish release** 正式发布
+
+**⚠️ 发布后不可撤销！**
+
+### 闸口 3：破坏性变更
+
+**场景**：数据库迁移、API 变更等
+
+**确认内容**：
+- ✅ 数据备份
+- ✅ 迁移脚本测试
+- ✅ 回滚方案
+
+---
+
+## 环境变量说明
+
+### 后端环境变量
+
+| 变量名 | 说明 | 默认值 | 生产环境 |
+|--------|------|--------|---------|
+| `DATABASE_URL` | 数据库连接 | `sqlite:///./vocabmaster.db` | PostgreSQL URL |
+| `SECRET_KEY` | JWT 密钥 | ⚠️ 不安全 | **必须修改** |
+| `ALGORITHM` | JWT 算法 | `HS256` | - |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token 有效期 | `30` | - |
+| `APP_NAME` | 应用名称 | `VocabMaster API` | - |
+| `DEBUG` | 调试模式 | `true` | `false` |
+| `CORS_ORIGINS` | CORS 允许源 | `*` | 前端域名 |
+
+### 前端环境变量
+
+| 变量名 | 说明 | 开发环境 | 生产环境 |
+|--------|------|----------|---------|
+| `VITE_API_URL` | API 地址 | `http://localhost:8000` | 实际后端地址 |
+| `VITE_APP_ENV` | 环境 | `development` | `production` |
+
+### 生成安全密钥
+
+```bash
+# Linux/Mac/WSL
+openssl rand -hex 32
+
+# Python
+python -c "import secrets; print(secrets.token_hex(32))"
+
+# PowerShell
+[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+```
+
+---
+
+## 故障排查
+
+### 后端无法启动
+
+**问题**：`ModuleNotFoundError: No module named 'app'`
+
+**解决**：
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+---
+
+### 前端无法连接后端
+
+**问题**：`Failed to fetch` 或 `Network Error`
+
+**排查**：
+1. 后端是否启动？访问 http://localhost:8000/health
+2. CORS 配置是否正确？
+3. 前端 `VITE_API_URL` 是否正确？
+
+**解决**：
+```bash
+# 检查后端
+curl http://localhost:8000/health
+
+# 检查前端配置
+cat frontend/.env.development
+```
+
+---
+
+### 数据库错误
+
+**问题**：`no such table: users`
+
+**解决**：
+```bash
+cd backend
+python init_db.py  # 初始化数据库
+```
+
+---
+
+### Docker 容器无法启动
+
+**问题**：容器启动后立即退出
+
+**排查**：
+```bash
+docker-compose logs backend
+docker-compose logs frontend
+```
+
+**常见原因**：
+- 环境变量缺失
+- 端口被占用
+- 数据库连接失败
+
+---
+
+## 下一步
+
+- [ ] 配置生产环境变量
+- [ ] 选择部署平台（Railway/Render/自建）
+- [ ] 配置 GitHub Secrets（`PRODUCTION_API_URL`, `SECRET_KEY`）
+- [ ] 测试部署流程
+- [ ] 配置域名（可选）
+- [ ] 配置 HTTPS（平台自动提供）
+
+---
+
+## 相关文档
+
+- [架构设计](./architecture.md)
+- [需求规格](../specs/requirements.md)
+- [API 文档](http://localhost:8000/docs) - 后端启动后访问

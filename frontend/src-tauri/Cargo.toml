@@ -1,14 +1,14 @@
 [package]
-name = "ai-recorder"
+name = "vocabmaster"
 version = "0.1.0"
-description = "AI 录音助手"
+description = "VocabMaster - 英语单词学习助手"
 authors = ["you"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "ai_recorder_lib"
+name = "vocabmaster_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

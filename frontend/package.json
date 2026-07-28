@@ -1,13 +1,14 @@
 {
-  "name": "ai-voice-assistant",
+  "name": "vocabmaster",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "跨平台 AI 录音助手 - 录音 / 语音转文字 / AI 处理",
+  "description": "VocabMaster - 英语单词学习助手",
   "scripts": {
     "setup": "node scripts/setup.mjs",
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:prod": "npm run check && npm run build",
     "preview": "vite preview",
 
     "typecheck": "tsc --noEmit",
@@ -15,15 +16,18 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
 
     "check": "npm run typecheck && npm run lint && npm run test",
 
     "tauri": "tauri",
     "desktop": "tauri dev",
     "desktop:build": "tauri build",
+    "desktop:build:debug": "tauri build --debug",
 
     "ci": "npm run check",
-    "release:desktop": "npm run check && npm run desktop:build"
+    "release:desktop": "npm run check && npm run desktop:build",
+    "release:web": "npm run check && npm run build"
   },
   "dependencies": {
     "react": "^18.3.1",

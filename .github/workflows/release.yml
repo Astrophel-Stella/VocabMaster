@@ -1,4 +1,4 @@
-# 发布：打 tag（如 v0.1.0）自动构建桌面客户端并生成 GitHub Release 草稿
+# 发布：打 tag（如 v1.0.0）自动构建桌面客户端并生成 GitHub Release 草稿
 # 这是「全自动构建上线」的核心。默认只构建 Windows；
 # mac / linux 的口子已按注释预留，取消注释即启用多平台矩阵。
 name: Release Desktop
@@ -64,6 +64,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 生产环境 API 地址
+          VITE_API_URL: ${{ secrets.PRODUCTION_API_URL }}
           # ── 代码签名预留口子（配好 secrets 后启用，去掉未签名安全告警）──
           # Windows: TAURI_SIGNING_PRIVATE_KEY / TAURI_SIGNING_PRIVATE_KEY_PASSWORD
           # 自动更新: TAURI_SIGNING_PRIVATE_KEY 用于生成 updater 签名
@@ -72,8 +74,31 @@ jobs:
         with:
           projectPath: frontend
           tagName: ${{ github.ref_name }}
-          releaseName: 'AI 录音助手 ${{ github.ref_name }}'
+          releaseName: 'VocabMaster ${{ github.ref_name }}'
           releaseBody: '自动构建产物。安装包见下方 Assets。'
           releaseDraft: true # 先生成草稿，人工确认后再正式发布（上线闸门）
           prerelease: false
           args: ${{ matrix.args }}
+
+      # ── 人类闸口：发布前确认 ──
+      - name: Release Notice
+        run: |
+          echo "======================================"
+          echo "  🚨 人类闸口提醒"
+          echo "======================================"
+          echo ""
+          echo "✅ Release 草稿已创建"
+          echo ""
+          echo "发布前请确认："
+          echo "  1. 测试结果全部通过（CI）"
+          echo "  2. 版本号正确"
+          echo "  3. 安装包可以正常运行"
+          echo "  4. 检查 Release Notes"
+          echo ""
+          echo "下一步："
+          echo "  1. 访问 GitHub Releases 页面"
+          echo "  2. 检查草稿内容"
+          echo "  3. 点击 'Publish release' 正式发布"
+          echo ""
+          echo "⚠️  发布后不可撤销！"
+          echo "======================================"
