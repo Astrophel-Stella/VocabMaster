@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "AI 录音助手默认权限",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://api.groq.com/*" },
+        { "url": "https://api.openai.com/*" }
+      ]
+    }
+  ]
+}

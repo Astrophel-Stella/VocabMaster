@@ -1,0 +1,79 @@
+# 发布：打 tag（如 v0.1.0）自动构建桌面客户端并生成 GitHub Release 草稿
+# 这是「全自动构建上线」的核心。默认只构建 Windows；
+# mac / linux 的口子已按注释预留，取消注释即启用多平台矩阵。
+name: Release Desktop
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {} # 也可手动触发一次构建
+
+jobs:
+  build-desktop:
+    permissions:
+      contents: write # 允许创建 Release 与上传产物
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ''
+          # ── 预留口子：解开注释即启用 macOS / Linux 构建 ──
+          # - platform: macos-latest
+          #   args: '--target aarch64-apple-darwin'   # Apple Silicon
+          # - platform: macos-latest
+          #   args: '--target x86_64-apple-darwin'    # Intel Mac
+          # - platform: ubuntu-22.04
+          #   args: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装 Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # 预留：多平台时按 matrix 指定 target
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust 缓存
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './frontend/src-tauri -> target'
+
+      # ── Linux 系统依赖（预留口子，启用 ubuntu 构建时解开）──
+      # - name: 安装 Linux 依赖
+      #   if: matrix.platform == 'ubuntu-22.04'
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: 安装前端依赖
+        run: npm ci
+        working-directory: frontend
+
+      - name: 构建并发布
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # ── 代码签名预留口子（配好 secrets 后启用，去掉未签名安全告警）──
+          # Windows: TAURI_SIGNING_PRIVATE_KEY / TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          # 自动更新: TAURI_SIGNING_PRIVATE_KEY 用于生成 updater 签名
+          # TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: frontend
+          tagName: ${{ github.ref_name }}
+          releaseName: 'AI 录音助手 ${{ github.ref_name }}'
+          releaseBody: '自动构建产物。安装包见下方 Assets。'
+          releaseDraft: true # 先生成草稿，人工确认后再正式发布（上线闸门）
+          prerelease: false
+          args: ${{ matrix.args }}

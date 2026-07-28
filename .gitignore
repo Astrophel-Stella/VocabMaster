@@ -1,0 +1,21 @@
+# 依赖
+node_modules
+dist
+dist-ssr
+
+# 环境 / 密钥（密钥仅存本地，勿提交）
+.env
+.env.local
+
+# 编辑器
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+# 日志
+*.log
+npm-debug.log*
+
+# Rust / Tauri
+frontend/src-tauri/target

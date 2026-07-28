@@ -1,0 +1,39 @@
+# CI：每次 push / PR 自动做 类型检查 + lint + 单测
+# 这是「全自动开发测试」的第一道关口。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {} # 支持手动触发
+
+jobs:
+  check:
+    name: 类型检查 / Lint / 测试
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 类型检查
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: 单元测试
+        run: npm run test

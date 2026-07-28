@@ -1,0 +1,6 @@
+# Rust / Tauri
+/target
+Cargo.lock
+
+# 生成的 schema
+/gen/schemas

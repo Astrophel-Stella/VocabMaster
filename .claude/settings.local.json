@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(rustc --version)",
+      "Bash(cargo --version)",
+      "Bash(reg query *)",
+      "Bash(where link.exe)",
+      "Bash(where cl.exe)",
+      "Read(//c/Program Files/Microsoft Visual Studio/**)",
+      "Read(//c/Program Files \\\\\\(x86\\\\\\)/Microsoft Visual Studio/**)",
+      "Read(//c/Program Files \\\\\\(x86\\\\\\)/Microsoft Visual Studio/2022/**)",
+      "Bash(winget --version)",
+      "Bash(where rustup *)",
+      "Bash('C:\\\\Users\\\\lds/.cargo/bin/rustc' --version)",
+      "Bash('C:\\\\Users\\\\lds/.cargo/bin/cargo' --version)",
+      "Bash('C:\\\\Users\\\\lds/.cargo/bin/rustup' show *)",
+      "Bash(npm run *)",
+      "Bash(node scripts/gen-icon.mjs)",
+      "Bash(npx @tauri-apps/cli icon src-tauri/app-icon.png)",
+      "Bash(awk '{print $5, $9}')"
+    ]
+  }
+}

@@ -1,0 +1,54 @@
+# Web 端部署（预留口子）
+# 默认仅手动触发，构建出 Web 版静态产物。
+# 部署目标（Pages / Vercel / Cloudflare 等）按注释解开其一即可上线网页版。
+name: Deploy Web
+
+on:
+  workflow_dispatch: {} # 目前仅手动触发，避免误上线
+  # 预留：确认要自动发布网页版时，解开下面几行
+  # push:
+  #   branches: [main]
+
+jobs:
+  build-web:
+    name: 构建 Web 静态产物
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run build # 产物在 frontend/dist
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: frontend/dist
+
+      # ── 部署口子（三选一，解开注释并配置 secrets）──
+      #
+      # 方案 A：GitHub Pages
+      # - uses: actions/upload-pages-artifact@v3
+      #   with: { path: frontend/dist }
+      # - uses: actions/deploy-pages@v4
+      #
+      # 方案 B：Vercel
+      # - run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+      #
+      # 方案 C：Cloudflare Pages
+      # - uses: cloudflare/wrangler-action@v3
+      #   with:
+      #     apiToken: ${{ secrets.CF_API_TOKEN }}
+      #     command: pages deploy frontend/dist --project-name=ai-recorder
+      #
+      # ⚠️ 注意：生产 Web 版需要真实的 API 代理来隐藏密钥
+      #    （dev 用的 Vite proxy 不适用于生产）。见 BUILD.md。

@@ -1,0 +1,7 @@
+// 主入口：桌面端启动
+// 生产构建时隐藏 Windows 控制台窗口
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+fn main() {
+    ai_recorder_lib::run()
+}
