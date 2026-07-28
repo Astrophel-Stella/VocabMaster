@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "AI录音助手",
+  "productName": "VocabMaster",
   "version": "0.1.0",
-  "identifier": "com.airecorder.app",
+  "identifier": "com.vocabmaster.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:5173",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "AI 录音助手",
+        "title": "VocabMaster - 英语单词学习助手",
         "width": 1100,
         "height": 800,
         "minWidth": 820,
