@@ -42,5 +42,6 @@
 | 0006 | 选择 Python FastAPI 作为后端框架 | ✅ 已采纳 |
 | 0007 | 选择 SQLite 作为数据库 | ✅ 已采纳 |
 | 0008 | 用户认证方案（JWT） | ✅ 已采纳 |
+| 0009 | Windows 启动脚本编码与健壮性改进 | ✅ 已采纳 |
 
-> **注意**：ADR-0002 和 ADR-0003 来自 AI 录音助手项目，不适用于 VocabMaster（单词学习应用）。VocabMaster 的核心决策见 ADR-0005~0008。
+> **注意**：ADR-0002 和 ADR-0003 来自 AI 录音助手项目，不适用于 VocabMaster（单词学习应用）。VocabMaster 的核心决策见 ADR-0005~0009。

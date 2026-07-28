@@ -1,81 +1,93 @@
 @echo off
-REM 环境检查脚本
+REM VocabMaster Environment Check Script
+
+setlocal
+
+REM Save script directory as project root
+set "PROJECT_ROOT=%~dp0.."
+cd /d "%PROJECT_ROOT%"
 
 echo ========================================
-echo   VocabMaster 环境检查
+echo   VocabMaster Environment Check
 echo ========================================
 echo.
 
 set ERROR=0
 
-REM 检查 Python
-echo [检查] Python...
+REM Check Python
+echo [Check] Python...
 python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [✗] Python 未安装
+if errorlevel 1 (
+    echo [X] Python not installed
+    echo     Download: https://www.python.org/downloads/
     set ERROR=1
 ) else (
-    for /f "tokens=2" %%i in ('python --version 2^>^&1') do echo [✓] Python %%i 已安装
+    for /f "tokens=2" %%i in ('python --version 2^>^&1') do echo [OK] Python %%i installed
 )
 
-REM 检查 Node.js
-echo [检查] Node.js...
+REM Check Node.js
+echo [Check] Node.js...
 node --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [✗] Node.js 未安装
+if errorlevel 1 (
+    echo [X] Node.js not installed
+    echo     Download: https://nodejs.org/
     set ERROR=1
 ) else (
-    for /f %%i in ('node --version') do echo [✓] Node.js %%i 已安装
+    for /f %%i in ('node --version') do echo [OK] Node.js %%i installed
 )
 
-REM 检查 npm
-echo [检查] npm...
+REM Check npm
+echo [Check] npm...
 npm --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [✗] npm 未安装
+if errorlevel 1 (
+    echo [X] npm not installed
     set ERROR=1
 ) else (
-    for /f %%i in ('npm --version') do echo [✓] npm %%i 已安装
+    for /f %%i in ('npm --version') do echo [OK] npm %%i installed
 )
 
-REM 检查 Rust（可选，仅桌面版需要）
+REM Check Rust (optional, only for desktop version)
 echo.
-echo [检查] Rust（可选，仅桌面版需要）...
+echo [Check] Rust (optional, only for desktop version)...
 rustc --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [!] Rust 未安装 - 仅影响桌面版打包
-    echo     安装: https://www.rust-lang.org/tools/install
+if errorlevel 1 (
+    echo [!] Rust not installed - only affects desktop packaging
+    echo     Install: https://www.rust-lang.org/tools/install
 ) else (
-    for /f "tokens=2" %%i in ('rustc --version 2^>^&1') do echo [✓] Rust %%i 已安装
+    for /f "tokens=2" %%i in ('rustc --version 2^>^&1') do echo [OK] Rust %%i installed
 )
 
-REM 检查后端依赖
+REM Check backend dependencies
 echo.
-echo [检查] 后端依赖...
+echo [Check] Backend dependencies...
 cd backend
 if exist "venv" (
-    echo [✓] Python 虚拟环境已创建
+    echo [OK] Python virtual environment created
 ) else (
-    echo [!] Python 虚拟环境未创建 - 运行 scripts\dev.bat 会自动创建
+    echo [!] Python virtual environment not created - run scripts\dev.bat to create
 )
 cd ..
 
-REM 检查前端依赖
-echo [检查] 前端依赖...
+REM Check frontend dependencies
+echo [Check] Frontend dependencies...
 cd frontend
 if exist "node_modules" (
-    echo [✓] 前端依赖已安装
+    echo [OK] Frontend dependencies installed
 ) else (
-    echo [!] 前端依赖未安装 - 运行 scripts\dev.bat 会自动安装
+    echo [!] Frontend dependencies not installed - run scripts\dev.bat to install
 )
 cd ..
 
 echo.
 echo ========================================
-if %ERROR%==1 (
-    echo [结果] 环境检查失败，请安装缺失的依赖
+if "%ERROR%"=="1" (
+    echo [Result] Environment check failed, please install missing dependencies
 ) else (
-    echo [结果] 环境检查通过！可以运行 scripts\dev.bat 启动
+    echo [Result] Environment check passed! Run scripts\dev.bat to start
 )
 echo ========================================
+
+echo.
 pause
+
+endlocal

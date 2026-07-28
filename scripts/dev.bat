@@ -1,74 +1,118 @@
 @echo off
-REM VocabMaster 开发环境启动脚本 (Windows)
-REM 同时启动后端和前端
+REM VocabMaster Development Environment Startup Script (Windows)
+REM Starts both backend and frontend
+
+setlocal
+
+REM Save script directory as project root
+set "PROJECT_ROOT=%~dp0.."
+cd /d "%PROJECT_ROOT%"
 
 echo ========================================
-echo   VocabMaster 开发环境启动
+echo   VocabMaster Development Environment
 echo ========================================
 echo.
 
-REM 检查 Python
+REM Check Python
 python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [错误] 未找到 Python，请先安装 Python 3.10+
+if errorlevel 1 (
+    echo [Error] Python not found, please install Python 3.10+
+    echo         Download: https://www.python.org/downloads/
     pause
     exit /b 1
 )
 
-REM 检查 Node.js
+REM Check Node.js
 node --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [错误] 未找到 Node.js，请先安装 Node.js 18+
+if errorlevel 1 (
+    echo [Error] Node.js not found, please install Node.js 18+
+    echo         Download: https://nodejs.org/
     pause
     exit /b 1
 )
 
-echo [1/4] 检查后端虚拟环境...
+echo [1/4] Checking backend virtual environment...
 cd backend
 if not exist "venv" (
-    echo [创建] 虚拟环境不存在，正在创建...
+    echo [Create] Virtual environment not found, creating...
     python -m venv venv
+    if errorlevel 1 (
+        echo [Error] Virtual environment creation failed
+        pause
+        exit /b 1
+    )
 )
 
-echo [2/4] 激活虚拟环境并安装依赖...
-call venv\Scripts\activate
+echo [2/4] Activating virtual environment and installing dependencies...
+call venv\Scripts\activate.bat
+if errorlevel 1 (
+    echo [Error] Virtual environment activation failed
+    pause
+    exit /b 1
+)
 pip install -r requirements.txt --quiet
-
-echo [3/4] 初始化数据库（如果需要）...
-if not exist "vocabmaster.db" (
-    python init_db.py
+if errorlevel 1 (
+    echo [Warning] Dependency installation may have issues, continuing...
 )
 
-echo [4/4] 启动后端服务...
-start "VocabMaster Backend" cmd /k "venv\Scripts\activate && uvicorn app.main:app --reload --port 8000"
-echo [✓] 后端已启动: http://localhost:8000
-echo [✓] API 文档: http://localhost:8000/docs
+echo [3/4] Initializing database (if needed)...
+if not exist "vocabmaster.db" (
+    echo [Init] Creating database...
+    python init_db.py
+    if errorlevel 1 (
+        echo [Error] Database initialization failed
+        pause
+        exit /b 1
+    )
+)
 
-cd ..
+echo [4/4] Starting backend service...
+start "VocabMaster Backend" cmd /k "cd /d %PROJECT_ROOT%\backend && call venv\Scripts\activate.bat && uvicorn app.main:app --reload --port 8000"
+if errorlevel 1 (
+    echo [Error] Backend startup failed
+    pause
+    exit /b 1
+)
+echo [OK] Backend started: http://localhost:8000
+echo [OK] API Docs: http://localhost:8000/docs
+
+cd /d "%PROJECT_ROOT%"
 
 echo.
-echo [启动前端] 检查依赖...
+echo [Frontend] Checking dependencies...
 cd frontend
 if not exist "node_modules" (
-    echo [安装] 前端依赖...
+    echo [Install] Frontend dependencies...
     call npm install
+    if errorlevel 1 (
+        echo [Error] Frontend dependency installation failed
+        pause
+        exit /b 1
+    )
 )
 
-echo [启动] 前端开发服务器...
-start "VocabMaster Frontend" cmd /k "npm run dev"
-echo [✓] 前端已启动: http://localhost:5173
+echo [Start] Frontend development server...
+start "VocabMaster Frontend" cmd /k "cd /d %PROJECT_ROOT%\frontend && npm run dev"
+if errorlevel 1 (
+    echo [Error] Frontend startup failed
+    pause
+    exit /b 1
+)
+echo [OK] Frontend started: http://localhost:5173
 
-cd ..
+cd /d "%PROJECT_ROOT%"
 
 echo.
 echo ========================================
-echo   启动完成！
+echo   Startup Complete!
 echo ========================================
-echo   后端: http://localhost:8000
-echo   前端: http://localhost:5173
-echo   测试账号: testuser / testpass123
+echo   Backend: http://localhost:8000
+echo   Frontend: http://localhost:5173
+echo   Test Account: testuser / testpass123
 echo ========================================
 echo.
-echo 按任意键打开浏览器...
+echo Press any key to open browser...
 pause >nul
 start http://localhost:5173
+
+endlocal
