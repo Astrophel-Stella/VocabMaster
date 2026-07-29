@@ -69,8 +69,8 @@ describe('useWords Hook', () => {
   describe('REQ-WB-002: Get Words', () => {
     it('REQ-WB-002: should load words from a word bank', async () => {
       const mockWords = [
-        { id: 1, spelling: 'abandon', phonetic: '/əˈbændən/', meaning: 'v. 放弃', example_sentence: 'He abandoned his family.' },
-        { id: 2, spelling: 'ability', phonetic: '/əˈbɪləti/', meaning: 'n. 能力', example_sentence: 'She has ability.' },
+        { id: 1, spelling: 'abandon', phonetic: '/əˈbændən/', pronunciation_url: null, meaning: 'v. 放弃', example_sentence: 'He abandoned his family.' },
+        { id: 2, spelling: 'ability', phonetic: '/əˈbɪləti/', pronunciation_url: null, meaning: 'n. 能力', example_sentence: 'She has ability.' },
       ];
 
       vi.mocked(api.getWords).mockResolvedValueOnce({ words: mockWords, total: 2 });
@@ -88,7 +88,7 @@ describe('useWords Hook', () => {
 
     it('REQ-WB-002: should support pagination parameters', async () => {
       const mockWords = [
-        { id: 3, spelling: 'absorb', phonetic: '/əbˈsɔːrb/', meaning: 'v. 吸收', example_sentence: 'Plants absorb water.' },
+        { id: 3, spelling: 'absorb', phonetic: '/əbˈsɔːrb/', pronunciation_url: null, meaning: 'v. 吸收', example_sentence: 'Plants absorb water.' },
       ];
 
       vi.mocked(api.getWords).mockResolvedValueOnce({ words: mockWords, total: 5 });
@@ -107,8 +107,8 @@ describe('useWords Hook', () => {
   describe('Word Navigation', () => {
     it('should navigate to next word', async () => {
       const mockWords = [
-        { id: 1, spelling: 'word1', phonetic: '/w1/', meaning: 'm1', example_sentence: 'e1' },
-        { id: 2, spelling: 'word2', phonetic: '/w2/', meaning: 'm2', example_sentence: 'e2' },
+        { id: 1, spelling: 'word1', phonetic: '/w1/', pronunciation_url: null, meaning: 'm1', example_sentence: 'e1' },
+        { id: 2, spelling: 'word2', phonetic: '/w2/', pronunciation_url: null, meaning: 'm2', example_sentence: 'e2' },
       ];
 
       vi.mocked(api.getWords).mockResolvedValueOnce({ words: mockWords, total: 2 });
@@ -130,8 +130,8 @@ describe('useWords Hook', () => {
 
     it('should navigate to previous word', async () => {
       const mockWords = [
-        { id: 1, spelling: 'word1', phonetic: '/w1/', meaning: 'm1', example_sentence: 'e1' },
-        { id: 2, spelling: 'word2', phonetic: '/w2/', meaning: 'm2', example_sentence: 'e2' },
+        { id: 1, spelling: 'word1', phonetic: '/w1/', pronunciation_url: null, meaning: 'm1', example_sentence: 'e1' },
+        { id: 2, spelling: 'word2', phonetic: '/w2/', pronunciation_url: null, meaning: 'm2', example_sentence: 'e2' },
       ];
 
       vi.mocked(api.getWords).mockResolvedValueOnce({ words: mockWords, total: 2 });
@@ -157,7 +157,7 @@ describe('useWords Hook', () => {
 
     it('should not go beyond word list bounds', async () => {
       const mockWords = [
-        { id: 1, spelling: 'word1', phonetic: '/w1/', meaning: 'm1', example_sentence: 'e1' },
+        { id: 1, spelling: 'word1', phonetic: '/w1/', pronunciation_url: null, meaning: 'm1', example_sentence: 'e1' },
       ];
 
       vi.mocked(api.getWords).mockResolvedValueOnce({ words: mockWords, total: 1 });

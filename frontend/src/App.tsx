@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useUserStore } from './stores/userStore';
 import { useWordStore } from './stores/wordStore';
+import { useWords } from './hooks/useWords';
 import { useProgress } from './hooks/useProgress';
 import { LoginPanel } from './components/LoginPanel';
 import { WordBankSelect } from './components/WordBankSelect';
@@ -9,7 +10,8 @@ import { getAdapter } from './adapters';
 
 export default function App() {
   const { isAuthenticated, user, logout } = useUserStore();
-  const { selectedWordBank, loadWords, reset } = useWordStore();
+  const { selectedWordBank, reset } = useWordStore();
+  const { loadWords } = useWords();
   const { loadProgress } = useProgress();
 
   const platform = getAdapter().name;

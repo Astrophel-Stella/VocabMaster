@@ -108,7 +108,7 @@ echo   Startup Complete!
 echo ========================================
 echo   Backend: http://localhost:8000
 echo   Frontend: http://localhost:5173
-echo   Test Account: testuser / testpass123
+echo   Test Account: test / 123456
 echo ========================================
 echo.
 echo Press any key to open browser...

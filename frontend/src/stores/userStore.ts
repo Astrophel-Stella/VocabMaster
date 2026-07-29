@@ -33,6 +33,12 @@ export const useUserStore = create<UserState>()(
     {
       name: 'vocabmaster-user',
       partialize: (state) => ({ token: state.token, user: state.user }),
+      onRehydrateStorage: () => (state) => {
+        // Rehydrate isAuthenticated based on persisted user/token
+        if (state && state.user) {
+          state.isAuthenticated = true;
+        }
+      },
     }
   )
 );

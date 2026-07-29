@@ -99,7 +99,7 @@ Write-Host "  启动完成！" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  后端: http://localhost:8000" -ForegroundColor White
 Write-Host "  前端: http://localhost:5173" -ForegroundColor White
-Write-Host "  测试账号: testuser / testpass123" -ForegroundColor White
+Write-Host "  测试账号: test / 123456" -ForegroundColor White
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "3 秒后自动打开浏览器..." -ForegroundColor Yellow
