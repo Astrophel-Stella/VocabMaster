@@ -107,7 +107,7 @@ export function LoginPanel() {
         {/* 测试账号提示 */}
         <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-blue-800 text-xs">
-            💡 测试账号: test / 123456
+            💡 测试账号: testuser / testpass123
           </p>
         </div>
       </div>
