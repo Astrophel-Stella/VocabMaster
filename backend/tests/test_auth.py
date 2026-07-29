@@ -8,14 +8,14 @@ def test_register_user(client: TestClient):
     response = client.post(
         "/api/auth/register",
         json={
-            "username": "testuser",
+            "username": "test",
             "email": "test@example.com",
-            "password": "testpass123"
+            "password": "123456"
         }
     )
     assert response.status_code == 201
     data = response.json()
-    assert data["username"] == "testuser"
+    assert data["username"] == "test"
     assert data["email"] == "test@example.com"
     assert "id" in data
 
@@ -26,9 +26,9 @@ def test_register_duplicate_username(client: TestClient):
     client.post(
         "/api/auth/register",
         json={
-            "username": "testuser",
+            "username": "test",
             "email": "test1@example.com",
-            "password": "testpass123"
+            "password": "123456"
         }
     )
 
@@ -36,9 +36,9 @@ def test_register_duplicate_username(client: TestClient):
     response = client.post(
         "/api/auth/register",
         json={
-            "username": "testuser",
+            "username": "test",
             "email": "test2@example.com",
-            "password": "testpass123"
+            "password": "123456"
         }
     )
     assert response.status_code == 400
@@ -51,9 +51,9 @@ def test_login_user(client: TestClient):
     client.post(
         "/api/auth/register",
         json={
-            "username": "testuser",
+            "username": "test",
             "email": "test@example.com",
-            "password": "testpass123"
+            "password": "123456"
         }
     )
 
@@ -61,8 +61,8 @@ def test_login_user(client: TestClient):
     response = client.post(
         "/api/auth/login",
         data={
-            "username": "testuser",
-            "password": "testpass123"
+            "username": "test",
+            "password": "123456"
         }
     )
     assert response.status_code == 200
@@ -89,17 +89,17 @@ def test_get_current_user(client: TestClient):
     client.post(
         "/api/auth/register",
         json={
-            "username": "testuser",
+            "username": "test",
             "email": "test@example.com",
-            "password": "testpass123"
+            "password": "123456"
         }
     )
 
     login_response = client.post(
         "/api/auth/login",
         data={
-            "username": "testuser",
-            "password": "testpass123"
+            "username": "test",
+            "password": "123456"
         }
     )
     token = login_response.json()["access_token"]
@@ -111,4 +111,4 @@ def test_get_current_user(client: TestClient):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["username"] == "testuser"
+    assert data["username"] == "test"

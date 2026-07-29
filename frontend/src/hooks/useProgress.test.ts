@@ -30,7 +30,7 @@ describe('useProgress Hook', () => {
       progressStats: null,
     });
     useUserStore.setState({
-      user: { id: 1, username: 'testuser', email: 'test@example.com', created_at: '2024-01-01T00:00:00Z' },
+      user: { id: 1, username: 'test', email: 'test@example.com', created_at: '2024-01-01T00:00:00Z' },
       token: 'test-token',
       isAuthenticated: true,
     });

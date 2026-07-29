@@ -17,9 +17,9 @@ class TestMarkWordMastered:
         """REQ-PROG-001: Given logged-in user and word ID, when marking as mastered, then update progress record (is_mastered=True)"""
         # Create test user
         user = User(
-            username="testuser",
+            username="test",
             email="test@example.com",
-            hashed_password=get_password_hash("testpass123")
+            hashed_password=get_password_hash("123456")
         )
         db_session.add(user)
         db_session.commit()
@@ -40,7 +40,7 @@ class TestMarkWordMastered:
         # Login to get token
         login_response = client.post(
             "/api/auth/login",
-            data={"username": "testuser", "password": "testpass123"}
+            data={"username": "test", "password": "123456"}
         )
         token = login_response.json()["access_token"]
 
@@ -59,9 +59,9 @@ class TestMarkWordMastered:
         """REQ-PROG-001: Marking a word as mastered should create a new progress record if none exists"""
         # Create test user
         user = User(
-            username="testuser2",
+            username="test2",
             email="test2@example.com",
-            hashed_password=get_password_hash("testpass123")
+            hashed_password=get_password_hash("123456")
         )
         db_session.add(user)
         db_session.commit()
@@ -81,7 +81,7 @@ class TestMarkWordMastered:
         # Login
         login_response = client.post(
             "/api/auth/login",
-            data={"username": "testuser2", "password": "testpass123"}
+            data={"username": "test2", "password": "123456"}
         )
         token = login_response.json()["access_token"]
 
@@ -115,9 +115,9 @@ class TestUnmarkWordMastered:
         """REQ-PROG-002: Given marked word, when unmarking, then update progress record (is_mastered=False)"""
         # Create test user
         user = User(
-            username="testuser3",
+            username="test3",
             email="test3@example.com",
-            hashed_password=get_password_hash("testpass123")
+            hashed_password=get_password_hash("123456")
         )
         db_session.add(user)
         db_session.commit()
@@ -147,7 +147,7 @@ class TestUnmarkWordMastered:
         # Login
         login_response = client.post(
             "/api/auth/login",
-            data={"username": "testuser3", "password": "testpass123"}
+            data={"username": "test3", "password": "123456"}
         )
         token = login_response.json()["access_token"]
 
@@ -167,9 +167,9 @@ class TestUnmarkWordMastered:
         """REQ-PROG-002: Unmarking a word without progress record should return 404"""
         # Create test user
         user = User(
-            username="testuser4",
+            username="test4",
             email="test4@example.com",
-            hashed_password=get_password_hash("testpass123")
+            hashed_password=get_password_hash("123456")
         )
         db_session.add(user)
         db_session.commit()
@@ -189,7 +189,7 @@ class TestUnmarkWordMastered:
         # Login
         login_response = client.post(
             "/api/auth/login",
-            data={"username": "testuser4", "password": "testpass123"}
+            data={"username": "test4", "password": "123456"}
         )
         token = login_response.json()["access_token"]
 
@@ -209,9 +209,9 @@ class TestGetProgress:
         """REQ-PROG-003: Given logged-in user and word bank ID, when requesting progress, then return mastery status for each word"""
         # Create test user
         user = User(
-            username="testuser5",
+            username="test5",
             email="test5@example.com",
-            hashed_password=get_password_hash("testpass123")
+            hashed_password=get_password_hash("123456")
         )
         db_session.add(user)
         db_session.commit()
@@ -240,7 +240,7 @@ class TestGetProgress:
         # Login
         login_response = client.post(
             "/api/auth/login",
-            data={"username": "testuser5", "password": "testpass123"}
+            data={"username": "test5", "password": "123456"}
         )
         token = login_response.json()["access_token"]
 
@@ -264,9 +264,9 @@ class TestGetProgress:
         """REQ-PROG-003: Getting progress for empty word bank should return empty list"""
         # Create test user
         user = User(
-            username="testuser6",
+            username="test6",
             email="test6@example.com",
-            hashed_password=get_password_hash("testpass123")
+            hashed_password=get_password_hash("123456")
         )
         db_session.add(user)
         db_session.commit()
@@ -280,7 +280,7 @@ class TestGetProgress:
         # Login
         login_response = client.post(
             "/api/auth/login",
-            data={"username": "testuser6", "password": "testpass123"}
+            data={"username": "test6", "password": "123456"}
         )
         token = login_response.json()["access_token"]
 
@@ -302,9 +302,9 @@ class TestProgressStats:
         """REQ-PROG-004: Given logged-in user and word bank ID, when requesting stats, then return total/mastered/percentage"""
         # Create test user
         user = User(
-            username="testuser7",
+            username="test7",
             email="test7@example.com",
-            hashed_password=get_password_hash("testpass123")
+            hashed_password=get_password_hash("123456")
         )
         db_session.add(user)
         db_session.commit()
@@ -333,7 +333,7 @@ class TestProgressStats:
         # Login
         login_response = client.post(
             "/api/auth/login",
-            data={"username": "testuser7", "password": "testpass123"}
+            data={"username": "test7", "password": "123456"}
         )
         token = login_response.json()["access_token"]
 
@@ -352,9 +352,9 @@ class TestProgressStats:
         """REQ-PROG-004: Getting stats for empty word bank should return zeros"""
         # Create test user
         user = User(
-            username="testuser8",
+            username="test8",
             email="test8@example.com",
-            hashed_password=get_password_hash("testpass123")
+            hashed_password=get_password_hash("123456")
         )
         db_session.add(user)
         db_session.commit()
@@ -368,7 +368,7 @@ class TestProgressStats:
         # Login
         login_response = client.post(
             "/api/auth/login",
-            data={"username": "testuser8", "password": "testpass123"}
+            data={"username": "test8", "password": "123456"}
         )
         token = login_response.json()["access_token"]
 

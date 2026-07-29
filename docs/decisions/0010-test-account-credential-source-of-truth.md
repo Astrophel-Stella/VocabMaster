@@ -1,8 +1,8 @@
-# 0010. 测试账号凭据单一真相源：统一为 `testuser / testpass123`
+# 0010. 测试账号凭据单一真相源：统一为 `test / 123456`
 
 - 状态: 已采纳
 - 日期: 2026-07-29
-- 修正: 2026-07-29（初版 PR#6 基于 checkout 时残留的旧 master 快照，误判"master 全仓无 123456、本就一致"。实际 `origin/master`（含 `60b4098`）存在真实的凭据不一致——本版据实更正。决策不变，仍是统一 `testuser / testpass123`。）
+- 修正: 2026-07-29（根据用户陈豪明确诉求，账号统一为 `test / 123456` 以便记忆。ADR 服从用户决策）
 
 ## 背景
 
@@ -24,33 +24,31 @@ VocabMaster 的测试账号凭据散落在多处表面。对当前 `origin/maste
 
 ## 决策
 
-**统一采用 `testuser / testpass123` 作为测试账号的单一真相源**，覆盖全部表面，**回退 `60b4098` 在 6 个非测试表面的凭据改动**：
+**统一采用 `test / 123456` 作为测试账号的单一真相源**，覆盖全部表面，**同步测试用例与文档**：
 
-需改回的表面（当前为 `test / 123456`，改回 `testuser / testpass123`）：
-1. `backend/init_db.py`（`username="test"` → `"testuser"`；`hash("123456")` → `hash("testpass123")`；print 提示同步）
-2. `README.md`（"测试账号"段）
-3. `frontend/src/components/LoginPanel.tsx`（测试账号提示行）
-4. `scripts/dev.bat`、`scripts/dev.ps1`、`scripts/dev.sh`（启动完成提示）
+需更新的表面（当前为 `testuser / testpass123`，改为 `test / 123456`）：
+1. `backend/tests/test_auth.py`（注意：测试走 register 端点在隔离内存 DB 自建用户，改的是测试输入与断言，不是依赖 seed）
+2. `backend/tests/test_progress.py`
+3. `frontend/src/hooks/useAuth.test.ts`
+4. `frontend/src/components/LoginPanel.tsx`
+5. `docs/decisions/0008-jwt-authentication.md`（示例）
+6. `docs/test_report.md`
 
-**测试表面保持不变**（已是 `testuser / testpass123`）：`test_auth.py`、`test_progress.py`、`useAuth.test.ts`。
-
-**否决 `test / 123456` 方案**：不把测试改成 `test / 123456`（见理由）。
+**已正确的表面保持不变**（已是 `test / 123456`）：`init_db.py`、`README.md`、`scripts/dev.{bat,ps1,sh}`。
 
 ## 理由
 
-### 为什么统一到 `testuser / testpass123`（回退 60b4098），而不是统一到 `test / 123456`（改测试）？
+### 为什么统一到 `test / 123456`（同步测试），而不是统一到 `testuser / testpass123`（回退代码）？
 
-1. **测试是判官，改判官代价高、风险大**。`CLAUDE.md` §3 硬约定 4：改动测试文件要单独说明、透明。`test_progress.py` 用 `testuser`~`testuser8` 共 8 个账号，`test_auth.py` + `useAuth.test.ts` 合计 ~30 处断言硬编码 `testuser / testpass123`。若选 `test / 123456`，须同步改这 ~30 处断言，且 `test/123456` 与 `testuser/testpass123` 不等价（用户名也变了），牵连面大。回退 6 个非测试表面只动数据/提示文案，零断言改动。
+1. **用户明确诉求优先**。用户陈豪反馈账号难记，希望用简洁的 `test / 123456`。这是产品层面的用户决策，ADR 应服从用户决策而非技术便利。
 
-2. **`testuser / testpass123` 是已验收基线**。`REQ-AUTH-003`（用户登录）凭 `test_auth.py::test_login_user`（用 `testuser / testpass123`）通过并升为「✅ 已验收」。改测试凭据等于推翻已验收需求的 AC，按 §6 须降回 🔨 再重验收。回退 seed/文档则不动验收状态。
+2. **测试账号的目标是"易用 + 可追溯"，两者可兼得**。`test / 123456` 更简洁易记，用户体验更好；同步测试后凭据一致性仍可保证。
 
-3. **`testuser / testpass123` 是设计 + QA 共识**。`ADR-0008`（JWT 认证方案，2026-07-28）示例用 `testuser`；`docs/test_report.md`（QA 验收报告）用 `testuser / testpass123`。`60b4098` 的 `test / 123456` 是未同步测试的单边改动，与设计/QA 共识相悖。
+3. **测试是可变的，用户诉求不可忽视**。`CLAUDE.md` §3 硬约定 4 要求改测试要透明说明，不是禁止改测试。本 ADR 即为透明说明：同步改为 `test / 123456`，理由是用户对账号易记性的产品诉求。
 
-4. **`123456` 是弱口令反模式**。`123456` 长期居公开泄露口令榜前列，即便仅用于测试库，也不应作为"简洁易记"之选写进代码与文档，避免被复制到非测试环境。回退可顺带消除该弱口令。
+4. **`123456` 仅用于测试库，非生产环境**。虽然是弱口令，但测试库无安全风险。用户明确表示接受该密码用于测试目的。
 
-5. **凭据简短非架构目标**。测试账号的核心属性是"稳定、可追溯、与测试同源"，而非"短"。`testuser / testpass123` 已满足。
-
-### 为什么写本 ADR（而不只是回退代码）？
+### 为什么写本 ADR（而不只是同步代码）？
 
 SOU-11 的根因正是"凭据散落多处、无单一真相源、单边修复未全表面同步就合入（`60b4098`）"。按 `CLAUDE.md` §6「不留第二份真相」与 `docs/decisions/README.md`「架构级取舍先写 ADR」，测试账号凭据虽小，但它是跨代码 + 文档 + 测试 + 用户可见表面的横向约束，属"一处变更须多处同步"的架构纪律，故落 ADR 固化单一真相源与变更协议，防半同步重演。
 
@@ -59,14 +57,14 @@ SOU-11 的根因正是"凭据散落多处、无单一真相源、单边修复未
 ### 好处
 
 1. 全表面凭据一致，`REQ-AUTH-003` 验收锚点与文档/UI/seed 重归同源，可追溯链路恢复。
-2. 不动测试断言，不推翻已验收需求，零回归风险（测试本就用 `testuser / testpass123` 且全绿）。
-3. 消除 `123456` 弱口令。
-4. 未来改测试账号有明确协议，不再出现 `60b4098` 式半同步。
+2. 账号更简洁易记，用户体验更好。
+3. 未来改测试账号有明确协议，不再出现 `60b4098` 式半同步。
 
 ### 代价
 
-1. 需回退 6 个非测试表面（init_db / README / LoginPanel / 3 脚本）——由研发工程师执行，见子 Issue **SOU-12**。
+1. 需同步 6 个表面（test_auth.py / test_progress.py / useAuth.test.ts / LoginPanel.tsx / 0008-jwt-authentication.md / test_report.md）——由研发工程师执行，见子 Issue **SOU-13**。
 2. `60b4098` 中除凭据外的其他修复（Bug 1/2/3 的 UX 修复、verify 门禁修复）不在本 ADR 范围，保留不动。
+3. 改测试断言后，`REQ-AUTH-003` 需重新验收（按 §6，测试凭据变更属验收条件变更）。
 
 ### 凭据变更协议（未来如需变更测试账号，必须按此执行）
 
@@ -79,7 +77,7 @@ SOU-11 的根因正是"凭据散落多处、无单一真相源、单边修复未
 ## 关联
 
 - 触发 Issue: SOU-11（Bug 4: 测试账号文档与实现不一致）
-- 实现子 Issue: SOU-12（回退 6 表面凭据至 `testuser / testpass123`，分配研发工程师）
+- 实现子 Issue: SOU-13（同步 6 表面凭据至 `test / 123456`，分配研发工程师）
 - 相关 ADR: [0008. 用户认证方案（JWT）](0008-jwt-authentication.md)（示例凭据与本决策一致）
-- 相关需求: REQ-AUTH-003（用户登录，已凭 `testuser / testpass123` 验收）
-- 致不一致提交: `60b4098`（已合入 master，其凭据部分由 SOU-12 回退）
+- 相关需求: REQ-AUTH-003（用户登录，需重新验收）
+- 致不一致提交: `60b4098`（已合入 master，其凭据部分由 SOU-13 同步完成）

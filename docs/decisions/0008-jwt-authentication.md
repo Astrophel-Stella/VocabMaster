@@ -120,9 +120,9 @@ verified = pwd_context.verify("user_password", hashed)  # 验证
 ```json
 {
   "sub": "user_id_123",       // 用户ID
-  "username": "testuser",      // 用户名
-  "exp": 1704067200,           // 过期时间（Unix timestamp）
-  "iat": 1704065400            // 签发时间
+  "username": "test",         // 用户名
+  "exp": 1704067200,          // 过期时间（Unix timestamp）
+  "iat": 1704065400           // 签发时间
 }
 ```
 
