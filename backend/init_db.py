@@ -112,9 +112,9 @@ def create_sample_data():
 
         # Create a test user
         test_user = User(
-            username="test",
+            username="testuser",
             email="test@example.com",
-            hashed_password=pwd_context.hash("123456")
+            hashed_password=pwd_context.hash("testpass123")
         )
         db.add(test_user)
         db.commit()
@@ -122,7 +122,7 @@ def create_sample_data():
         print("✅ Sample data created successfully!")
         print(f"   - 3 word banks: 高考英语, 考研英语, 生活英语")
         print(f"   - 7 sample words")
-        print(f"   - 1 test user (username: test, password: 123456)")
+        print(f"   - 1 test user (username: testuser, password: testpass123)")
 
     except Exception as e:
         print(f"❌ Error creating sample data: {e}")
