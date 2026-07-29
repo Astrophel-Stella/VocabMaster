@@ -38,7 +38,7 @@ app.include_router(progress.router)
 def startup_event():
     """Initialize database on startup"""
     init_db()
-    print("✅ Database initialized")
+    print("[OK] Database initialized")
 
 
 @app.get("/")
