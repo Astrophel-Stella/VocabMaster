@@ -150,27 +150,15 @@ test.describe('App-level Tests', () => {
     // Wait for word card
     await page.waitForSelector('h1.text-5xl', { timeout: 10000 });
 
-    // Click return button
+    // Verify return button is visible
     const returnButton = page.locator('button:has-text("返回")');
     await expect(returnButton).toBeVisible();
 
+    // Click return button
     await returnButton.click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
-    // Verify back to word bank selection
-    const wordBankTitle = page.locator('h2:has-text("选择词库")');
-    const isVisible = await wordBankTitle.isVisible().catch(() => false);
-
-    console.log(`After clicking return: word bank selection visible = ${isVisible}`);
-
-    // Document result
-    if (!isVisible) {
-      // POTENTIAL BUG: Return button didn't navigate back
-      console.log('POTENTIAL BUG: Return button did not navigate to word bank selection');
-      await page.screenshot({ path: 'bug-return-button.png', fullPage: true });
-    }
-
-    // Test documents behavior
-    expect(true).toBe(true);
+    // Verify navigation back to word bank selection (correct assertion)
+    await expect(page.locator('h2:has-text("选择词库")')).toBeVisible({ timeout: 5000 });
   });
 });
