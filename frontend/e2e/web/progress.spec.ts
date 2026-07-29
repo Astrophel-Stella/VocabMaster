@@ -130,10 +130,12 @@ test.describe('Progress Statistics (REQ-UI-004 / REQ-PROG-001~004)', () => {
         console.log('POTENTIAL BUG: Click on "已掌握" did not change to "标记已掌握"');
         // Take screenshot for evidence
         await page.screenshot({ path: 'bug-unmark-not-working.png' });
+        // Fail the test - this is a bug that needs to be fixed
+        expect(newMarkVisible).toBe(true);
       }
 
-      // Test passes either way - documenting behavior
-      expect(true).toBe(true);
+      // Verify final state
+      expect(newMarkVisible || newMasteredVisible).toBe(true);
     } else if (markButtonVisible) {
       // Not mastered - mark first, then unmark
       await markButton.click();
@@ -147,16 +149,10 @@ test.describe('Progress Statistics (REQ-UI-004 / REQ-PROG-001~004)', () => {
         await newMasteredButton.click();
         await page.waitForTimeout(1500);
 
+        // Verify toggle back to unmarked state
         const finalMarkVisible = await markButton.isVisible().catch(() => false);
-        if (finalMarkVisible) {
-          console.log('Word toggled to unmarked');
-        } else {
-          console.log('POTENTIAL BUG: Unmark did not work');
-          await page.screenshot({ path: 'bug-unmark-not-working-toggle.png' });
-        }
+        expect(finalMarkVisible).toBe(true);
       }
-      // Test passes - documenting behavior
-      expect(true).toBe(true);
     } else {
       throw new Error('Neither mark nor mastered button visible');
     }

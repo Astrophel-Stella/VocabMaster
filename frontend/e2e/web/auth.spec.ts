@@ -125,12 +125,16 @@ test.describe('Authentication (REQ-UI-001 / REQ-AUTH-001~005)', () => {
 
   /**
    * Network failure shows appropriate error (code verified)
-   * Note: This test verifies the error handling code exists
+   * Note: This is verified by code inspection - error handling exists
+   * To test in browser, one would need to stop the backend server
    */
-  test('REQ-AUTH: Network error handling verified in code', async () => {
-    // This is verified by code inspection in api.ts line 83
-    // The frontend differentiates network errors from authentication errors
-    // "无法连接到服务器，请检查后端是否正常运行" is shown for network failures
-    expect(true).toBe(true);
+  test.skip('REQ-AUTH: Network error shows appropriate message', async ({ page }) => {
+    // This test requires stopping the backend server to observe network error
+    // Network error handling is in api.ts (lines 82-84)
+    // It shows: "无法连接到服务器，请检查后端是否正常运行"
+    // For full E2E test:
+    // 1. Stop backend server
+    // 2. Try to login
+    // 3. Verify error message contains network error text
   });
 });
