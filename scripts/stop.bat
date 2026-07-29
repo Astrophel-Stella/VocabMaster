@@ -1,34 +1,35 @@
 @echo off
-REM 停止所有 VocabMaster 相关服务
+REM Stop all VocabMaster related services
 
-echo 正在停止 VocabMaster 服务...
+echo Stopping VocabMaster services...
 
-REM 停止 Python 后端
-tasklist /FI "WINDOWTITLE eq VocabMaster Backend*" 2>NUL | find "^VocabMaster Backend" >NUL
-if "%ERRORLEVEL%"=="0" (
-    taskkill /FI "WINDOWTITLE eq VocabMaster Backend*" /F
-    echo [✓] 后端已停止
+REM Stop Python backend window
+tasklist /FI "WINDOWTITLE eq VocabMaster Backend*" 2>NUL | findstr "VocabMaster" >NUL
+if not errorlevel 1 (
+    taskkill /FI "WINDOWTITLE eq VocabMaster Backend*" /F >NUL 2>&1
+    echo [OK] Backend window closed
 )
 
-REM 停止 Node.js 前端
-tasklist /FI "WINDOWTITLE eq VocabMaster Frontend*" 2>NUL | find "^VocabMaster Frontend" >NUL
-if "%ERRORLEVEL%"=="0" (
-    taskkill /FI "WINDOWTITLE eq VocabMaster Frontend*" /F
-    echo [✓] 前端已停止
+REM Stop Node.js frontend window
+tasklist /FI "WINDOWTITLE eq VocabMaster Frontend*" 2>NUL | findstr "VocabMaster" >NUL
+if not errorlevel 1 (
+    taskkill /FI "WINDOWTITLE eq VocabMaster Frontend*" /F >NUL 2>&1
+    echo [OK] Frontend window closed
 )
 
-REM 停止占用 8000 端口的进程（后端）
-for /f "tokens=5" %%a in ('netstat -aon ^| find ":8000" ^| find "LISTENING"') do (
+REM Stop processes on port 8000 (backend)
+REM Token 5 is the PID in netstat -aon output
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000.*LISTENING" 2^>NUL') do (
     taskkill /F /PID %%a >NUL 2>&1
-    echo [✓] 已停止端口 8000 上的服务
+    echo [OK] Stopped process %%a on port 8000
 )
 
-REM 停止占用 5173 端口的进程（前端）
-for /f "tokens=5" %%a in ('netstat -aon ^| find ":5173" ^| find "LISTENING"') do (
+REM Stop processes on port 5173 (frontend)
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173.*LISTENING" 2^>NUL') do (
     taskkill /F /PID %%a >NUL 2>&1
-    echo [✓] 已停止端口 5173 上的服务
+    echo [OK] Stopped process %%a on port 5173
 )
 
 echo.
-echo 所有服务已停止
+echo All services stopped
 pause
