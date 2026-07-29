@@ -17,6 +17,9 @@ export default function App() {
   const platform = getAdapter().name;
 
   // Load words when word bank is selected
+  // Note: loadWords/loadProgress are intentionally omitted from deps as they are
+  // unstable function references that would cause infinite re-renders.
+  // We use selectedWordBank?.id (primitive value) instead of the object.
   useEffect(() => {
     if (selectedWordBank) {
       loadWords(selectedWordBank.id, 0, 100);
@@ -24,7 +27,8 @@ export default function App() {
         loadProgress(selectedWordBank.id);
       }
     }
-  }, [selectedWordBank, loadWords, loadProgress, isAuthenticated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedWordBank?.id, isAuthenticated]);
 
   // Handle logout
   const handleLogout = () => {
