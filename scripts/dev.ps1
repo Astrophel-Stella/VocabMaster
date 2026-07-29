@@ -65,7 +65,7 @@ if (-not (Test-Path "vocabmaster.db")) {
 Write-Host "[4/4] 启动后端服务..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList @(
     "-NoExit",
-    "-Command", "cd '$ProjectRoot\backend'; & '.\venv\Scripts\Activate.ps1'; uvicorn app.main:app --reload --port 8000"
+    "-Command", "cd '$ProjectRoot\backend'; & '.\venv\Scripts\Activate.ps1'; uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
 )
 Write-Host "[OK] 后端已启动: http://localhost:8000" -ForegroundColor Green
 Write-Host "[OK] API 文档: http://localhost:8000/docs" -ForegroundColor Green

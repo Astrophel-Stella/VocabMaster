@@ -38,9 +38,9 @@ if [ ! -f "vocabmaster.db" ]; then
 fi
 
 echo "[4/4] 启动后端服务..."
-osascript -e 'tell application "Terminal" to do script "cd '$(pwd)' && source venv/bin/activate && uvicorn app.main:app --reload --port 8000"' 2>/dev/null || \
-gnome-terminal -e "bash -c 'cd $(pwd) && source venv/bin/activate && uvicorn app.main:app --reload --port 8000'" 2>/dev/null || \
-xterm -e "bash -c 'cd $(pwd) && source venv/bin/activate && uvicorn app.main:app --reload --port 8000'" 2>/dev/null &
+osascript -e 'tell application "Terminal" to do script "cd '$(pwd)' && source venv/bin/activate && uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"' 2>/dev/null || \
+gnome-terminal -e "bash -c 'cd $(pwd) && source venv/bin/activate && uvicorn app.main:app --reload --host 127.0.0.1 --port 8000'" 2>/dev/null || \
+xterm -e "bash -c 'cd $(pwd) && source venv/bin/activate && uvicorn app.main:app --reload --host 127.0.0.1 --port 8000'" 2>/dev/null &
 
 echo "[✓] 后端已启动: http://localhost:8000"
 echo "[✓] API 文档: http://localhost:8000/docs"

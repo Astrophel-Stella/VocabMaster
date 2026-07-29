@@ -67,7 +67,7 @@ if not exist "vocabmaster.db" (
 )
 
 echo [4/4] Starting backend service...
-start "VocabMaster Backend" cmd /k "cd /d %PROJECT_ROOT%\backend && call venv\Scripts\activate.bat && uvicorn app.main:app --reload --port 8000"
+start "VocabMaster Backend" cmd /k "cd /d %PROJECT_ROOT%\backend && call venv\Scripts\activate.bat && uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
 if errorlevel 1 (
     echo [Error] Backend startup failed
     pause

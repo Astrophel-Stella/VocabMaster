@@ -32,7 +32,7 @@ export default defineConfig({
     // 桌面(Tauri)走原生 HTTP 插件，不经过这里
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
     },
