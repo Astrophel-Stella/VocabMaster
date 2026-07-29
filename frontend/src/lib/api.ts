@@ -2,7 +2,7 @@
  * API Client - 封装后端 API 调用
  */
 
-import { apiFetch } from '../adapters';
+import { apiFetch, type ApiResponse } from '../adapters';
 
 // 从环境变量获取 API 地址，默认本地开发地址
 const API_BASE = import.meta.env.VITE_API_URL
@@ -71,15 +71,25 @@ export async function login(username: string, password: string): Promise<Token> 
   formData.append('username', username);
   formData.append('password', password);
 
-  const response = await apiFetch(`${API_BASE}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: formData.toString(),
-  });
+  let response: ApiResponse;
+  try {
+    response = await apiFetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData.toString(),
+    });
+  } catch (err) {
+    // Network failure (proxy error, fetch exception, etc.)
+    throw new Error('无法连接到服务器，请检查后端是否正常运行');
+  }
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Login failed');
+    // Distinguish 401 (auth failure) from other errors
+    if (response.status === 401) {
+      throw new Error(error.detail || '用户名或密码错误');
+    }
+    throw new Error(error.detail || '登录失败');
   }
 
   return response.json();
