@@ -69,11 +69,22 @@ export const useWordStore = create<WordState>((set) => ({
 
   setProgressStats: (stats) => set({ progressStats: stats }),
 
-  updateWordProgress: (wordId, isMastered) => set((state) => ({
-    progress: state.progress.map(p =>
-      p.word_id === wordId ? { ...p, is_mastered: isMastered } : p
-    ),
-  })),
+  updateWordProgress: (wordId, isMastered) => set((state) => {
+    const existingIndex = state.progress.findIndex(p => p.word_id === wordId);
+    if (existingIndex >= 0) {
+      // Update existing entry
+      return {
+        progress: state.progress.map(p =>
+          p.word_id === wordId ? { ...p, is_mastered: isMastered } : p
+        ),
+      };
+    } else {
+      // Add new entry
+      return {
+        progress: [...state.progress, { word_id: wordId, is_mastered: isMastered, mastered_at: isMastered ? new Date().toISOString() : null }],
+      };
+    }
+  }),
 
   setLoadingBanks: (loading) => set({ isLoadingBanks: loading }),
 

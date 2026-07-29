@@ -27,37 +27,37 @@
 
 | ID | 需求 | 验收条件(Given/When/Then) | 状态 | 测试锚点 |
 |---|---|---|---|---|
-| REQ-AUTH-001 | 用户注册 | 给定用户名/邮箱/密码,当提交注册,则创建用户账号并返回用户信息 | 🔨 已实现 | `backend/tests/test_auth.py::test_register_user` |
-| REQ-AUTH-002 | 用户名唯一性检查 | 给定已存在的用户名,当再次注册,则返回 400 错误"Username already registered" | 🔨 已实现 | `backend/tests/test_auth.py::test_register_duplicate_username` |
-| REQ-AUTH-003 | 用户登录 | 给定正确的用户名/密码,当登录,则返回 JWT token | 🔨 已实现 | `backend/tests/test_auth.py::test_login_user` |
-| REQ-AUTH-004 | 登录失败处理 | 给定错误的用户名/密码,当登录,则返回 401 错误 | 🔨 已实现 | `backend/tests/test_auth.py::test_login_invalid_credentials` |
-| REQ-AUTH-005 | 获取当前用户信息 | 给定有效 token,当请求 `/api/auth/me`,则返回用户信息 | 🔨 已实现 | `backend/tests/test_auth.py::test_get_current_user` |
+| REQ-AUTH-001 | 用户注册 | 给定用户名/邮箱/密码,当提交注册,则创建用户账号并返回用户信息 | ✅ 已验收 | `backend/tests/test_auth.py::test_register_user` |
+| REQ-AUTH-002 | 用户名唯一性检查 | 给定已存在的用户名,当再次注册,则返回 400 错误"Username already registered" | ✅ 已验收 | `backend/tests/test_auth.py::test_register_duplicate_username` |
+| REQ-AUTH-003 | 用户登录 | 给定正确的用户名/密码,当登录,则返回 JWT token | ✅ 已验收 | `backend/tests/test_auth.py::test_login_user` |
+| REQ-AUTH-004 | 登录失败处理 | 给定错误的用户名/密码,当登录,则返回 401 错误 | ✅ 已验收 | `backend/tests/test_auth.py::test_login_invalid_credentials` |
+| REQ-AUTH-005 | 获取当前用户信息 | 给定有效 token,当请求 `/api/auth/me`,则返回用户信息 | ✅ 已验收 | `backend/tests/test_auth.py::test_get_current_user` |
 
 ## 2. 词库管理(REQ-WB)
 
 | ID | 需求 | 验收条件 | 状态 | 测试锚点 |
 |---|---|---|---|---|
-| REQ-WB-001 | 获取词库列表 | 给定已登录用户,当请求词库列表,则返回所有可用词库(高考英语、考研英语、生活英语等) | 🔨 已实现 | 待补(`backend/tests/test_words.py`) |
-| REQ-WB-002 | 获取词库单词 | 给定词库 ID 和分页参数,当请求单词列表,则返回该词库的单词(含拼写/音标/释义/例句) | 🔨 已实现 | 待补 |
-| REQ-WB-003 | 词库不存在处理 | 给定不存在的词库 ID,当请求单词列表,则返回 404 错误 | 🔨 已实现 | 待补 |
+| REQ-WB-001 | 获取词库列表 | 给定已登录用户,当请求词库列表,则返回所有可用词库(高考英语、考研英语、生活英语等) | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WB_001_*` |
+| REQ-WB-002 | 获取词库单词 | 给定词库 ID 和分页参数,当请求单词列表,则返回该词库的单词(含拼写/音标/释义/例句) | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WB_002_*` |
+| REQ-WB-003 | 词库不存在处理 | 给定不存在的词库 ID,当请求单词列表,则返回 404 错误 | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WB_003_word_bank_not_found` |
 
 ## 3. 单词学习(REQ-WORD)
 
 | ID | 需求 | 验收条件 | 状态 | 测试锚点 |
 |---|---|---|---|---|
-| REQ-WORD-001 | 单词详情展示 | 给定单词 ID,当请求详情,则返回拼写/音标/发音 URL/释义/例句 | 🔨 已实现 | 待补 |
-| REQ-WORD-002 | 单词不存在处理 | 给定不存在的单词 ID,当请求详情,则返回 404 错误 | 🔨 已实现 | 待补 |
+| REQ-WORD-001 | 单词详情展示 | 给定单词 ID,当请求详情,则返回拼写/音标/发音 URL/释义/例句 | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WORD_001_get_word_detail_success` |
+| REQ-WORD-002 | 单词不存在处理 | 给定不存在的单词 ID,当请求详情,则返回 404 错误 | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WORD_002_word_not_found` |
 | REQ-WORD-003 | 发音播放(可选) | 给定单词有发音 URL,当用户点击播放按钮,则播放音频 | 📝 规划中 | — |
-| REQ-WORD-004 | 单词排序 | 给定词库单词列表,则按 order_index 排序返回 | 🔨 已实现 | 待补 |
+| REQ-WORD-004 | 单词排序 | 给定词库单词列表,则按 order_index 排序返回 | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WB_002_get_words_sorted_by_order_index` |
 
 ## 4. 学习进度(REQ-PROG)
 
 | ID | 需求 | 验收条件 | 状态 | 测试锚点 |
 |---|---|---|---|---|
-| REQ-PROG-001 | 标记单词已掌握 | 给定已登录用户和单词 ID,当标记已掌握,则更新进度记录(is_mastered=True) | 🔨 已实现 | 待补(`backend/tests/test_progress.py`) |
-| REQ-PROG-002 | 取消掌握标记 | 给定已标记的单词,当取消标记,则更新进度记录(is_mastered=False) | 🔨 已实现 | 待补 |
-| REQ-PROG-003 | 获取学习进度 | 给定已登录用户和词库 ID,当请求进度,则返回每个单词的掌握状态 | 🔨 已实现 | 待补 |
-| REQ-PROG-004 | 学习进度统计 | 给定已登录用户和词库 ID,当请求统计,则返回总词数/已掌握数/完成百分比 | 🔨 已实现 | 待补 |
+| REQ-PROG-001 | 标记单词已掌握 | 给定已登录用户和单词 ID,当标记已掌握,则更新进度记录(is_mastered=True) | ✅ 已验收 | `backend/tests/test_progress.py::test_REQ_PROG_001_*` |
+| REQ-PROG-002 | 取消掌握标记 | 给定已标记的单词,当取消标记,则更新进度记录(is_mastered=False) | ✅ 已验收 | `backend/tests/test_progress.py::test_REQ_PROG_002_*` |
+| REQ-PROG-003 | 获取学习进度 | 给定已登录用户和词库 ID,当请求进度,则返回每个单词的掌握状态 | ✅ 已验收 | `backend/tests/test_progress.py::test_REQ_PROG_003_*` |
+| REQ-PROG-004 | 学习进度统计 | 给定已登录用户和词库 ID,当请求统计,则返回总词数/已掌握数/完成百分比 | ✅ 已验收 | `backend/tests/test_progress.py::test_REQ_PROG_004_*` |
 
 ## 5. 用户界面(REQ-UI)
 
