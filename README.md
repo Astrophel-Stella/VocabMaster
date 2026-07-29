@@ -7,15 +7,17 @@
 ### 方式一：一键启动（推荐）
 
 ```bash
-# Windows
+# Windows (CMD)
 scripts\dev.bat
 
-# PowerShell
+# Windows (PowerShell) - 中文提示
 .\scripts\dev.ps1
 
 # Linux/Mac
 ./scripts/dev.sh
 ```
+
+> **提示**：如果遇到编码问题，建议使用 PowerShell 脚本 (`dev.ps1`)，支持中文提示。批处理脚本 (`dev.bat`) 使用英文提示以兼容所有 Windows 环境。
 
 自动完成：
 - ✅ 检查环境
