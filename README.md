@@ -45,8 +45,8 @@ npm run dev
 
 ### 测试账号
 
-- 用户名：`testuser`
-- 密码：`testpass123`
+- 用户名：`test`
+- 密码：`123456`
 
 ---
 

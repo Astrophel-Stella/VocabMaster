@@ -35,7 +35,7 @@ describe('useAuth Hook', () => {
     it('REQ-AUTH-001: should register a new user successfully', async () => {
       const mockUser = {
         id: 1,
-        username: 'testuser',
+        username: 'test',
         email: 'test@example.com',
         created_at: '2024-01-01T00:00:00Z',
       };
@@ -45,11 +45,11 @@ describe('useAuth Hook', () => {
       const { result } = renderHook(() => useAuth());
 
       await act(async () => {
-        const user = await result.current.register('testuser', 'test@example.com', 'password123');
+        const user = await result.current.register('test', 'test@example.com', '123456');
         expect(user).toEqual(mockUser);
       });
 
-      expect(api.register).toHaveBeenCalledWith('testuser', 'test@example.com', 'password123');
+      expect(api.register).toHaveBeenCalledWith('test', 'test@example.com', '123456');
     });
 
     it('REQ-AUTH-001: should handle registration failure', async () => {
@@ -59,7 +59,7 @@ describe('useAuth Hook', () => {
 
       await act(async () => {
         try {
-          await result.current.register('testuser', 'test@example.com', 'password123');
+          await result.current.register('test', 'test@example.com', '123456');
         } catch (error) {
           expect(error).toBeInstanceOf(Error);
           expect((error as Error).message).toBe('Username already registered');
@@ -75,7 +75,7 @@ describe('useAuth Hook', () => {
       const mockToken = { access_token: 'test-token', token_type: 'bearer' };
       const mockUser = {
         id: 1,
-        username: 'testuser',
+        username: 'test',
         email: 'test@example.com',
         created_at: '2024-01-01T00:00:00Z',
       };
@@ -86,11 +86,11 @@ describe('useAuth Hook', () => {
       const { result } = renderHook(() => useAuth());
 
       await act(async () => {
-        const user = await result.current.login('testuser', 'password123');
+        const user = await result.current.login('test', '123456');
         expect(user).toEqual(mockUser);
       });
 
-      expect(api.login).toHaveBeenCalledWith('testuser', 'password123');
+      expect(api.login).toHaveBeenCalledWith('test', '123456');
       expect(api.getCurrentUser).toHaveBeenCalledWith('test-token');
       expect(result.current.isAuthenticated).toBe(true);
       expect(result.current.token).toBe('test-token');
@@ -103,7 +103,7 @@ describe('useAuth Hook', () => {
 
       await act(async () => {
         try {
-          await result.current.login('testuser', 'wrongpass');
+          await result.current.login('test', 'wrongpass');
         } catch (error) {
           expect(error).toBeInstanceOf(Error);
         }
@@ -119,7 +119,7 @@ describe('useAuth Hook', () => {
       const mockToken = { access_token: 'test-token', token_type: 'bearer' };
       const mockUser = {
         id: 1,
-        username: 'testuser',
+        username: 'test',
         email: 'test@example.com',
         created_at: '2024-01-01T00:00:00Z',
       };
@@ -130,7 +130,7 @@ describe('useAuth Hook', () => {
       const { result } = renderHook(() => useAuth());
 
       await act(async () => {
-        await result.current.login('testuser', 'password123');
+        await result.current.login('test', '123456');
       });
 
       expect(result.current.user).toEqual(mockUser);
@@ -142,7 +142,7 @@ describe('useAuth Hook', () => {
       const mockToken = { access_token: 'test-token', token_type: 'bearer' };
       const mockUser = {
         id: 1,
-        username: 'testuser',
+        username: 'test',
         email: 'test@example.com',
         created_at: '2024-01-01T00:00:00Z',
       };
@@ -153,7 +153,7 @@ describe('useAuth Hook', () => {
       const { result } = renderHook(() => useAuth());
 
       await act(async () => {
-        await result.current.login('testuser', 'password123');
+        await result.current.login('test', '123456');
       });
 
       expect(result.current.isAuthenticated).toBe(true);
