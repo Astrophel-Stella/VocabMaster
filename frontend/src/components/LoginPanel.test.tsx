@@ -1,5 +1,5 @@
 /**
- * LoginPanel Component Tests - REQ-UI-001
+ * LoginPanel Component Tests - REQ-UI-001, REQ-AUTH-006
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -134,10 +134,10 @@ describe('LoginPanel Component - REQ-UI-001', () => {
       const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
 
       await user.type(usernameInput, 'test');
-      await user.type(passwordInput, '123456');
+      await user.type(passwordInput, 'Password123');
       await user.click(screen.getByRole('button', { name: /登录/i }));
 
-      expect(mockLogin).toHaveBeenCalledWith('test', '123456');
+      expect(mockLogin).toHaveBeenCalledWith('test', 'Password123');
       expect(mockClearError).toHaveBeenCalled();
     });
 
@@ -193,7 +193,7 @@ describe('LoginPanel Component - REQ-UI-001', () => {
       const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
 
       await user.type(usernameInput, 'test');
-      await user.type(passwordInput, '123456');
+      await user.type(passwordInput, 'Password123');
       await user.click(screen.getByRole('button', { name: /登录/i }));
 
       await waitFor(() => {
@@ -229,10 +229,10 @@ describe('LoginPanel Component - REQ-UI-001', () => {
 
       await user.type(usernameInput, 'newuser');
       await user.type(emailInput, 'new@example.com');
-      await user.type(passwordInput, '123456');
+      await user.type(passwordInput, 'Password123');
       await user.click(screen.getByRole('button', { name: /注册/i }));
 
-      expect(mockRegister).toHaveBeenCalledWith('newuser', 'new@example.com', '123456');
+      expect(mockRegister).toHaveBeenCalledWith('newuser', 'new@example.com', 'Password123');
     });
 
     it('REQ-UI-001 + REQ-AUTH-002: should display duplicate username error (400)', async () => {
@@ -261,7 +261,7 @@ describe('LoginPanel Component - REQ-UI-001', () => {
 
       await user.type(usernameInput, 'test');
       await user.type(emailInput, 'test2@example.com');
-      await user.type(passwordInput, '123456');
+      await user.type(passwordInput, 'Password123');
       await user.click(screen.getByRole('button', { name: /注册/i }));
 
       await waitFor(() => {
@@ -295,7 +295,7 @@ describe('LoginPanel Component - REQ-UI-001', () => {
 
       await user.type(usernameInput, 'newuser');
       await user.type(emailInput, 'test@example.com');
-      await user.type(passwordInput, '123456');
+      await user.type(passwordInput, 'Password123');
       await user.click(screen.getByRole('button', { name: /注册/i }));
 
       await waitFor(() => {
@@ -352,7 +352,162 @@ describe('LoginPanel Component - REQ-UI-001', () => {
       render(<LoginPanel />);
 
       expect(screen.getByText(/测试账号/i)).toBeInTheDocument();
-      expect(screen.getByText(/test.*123456/i)).toBeInTheDocument();
+      expect(screen.getByText(/test.*Password123/i)).toBeInTheDocument();
+    });
+  });
+
+  // REQ-AUTH-006: Password Strength Indicator Tests
+  describe('REQ-AUTH-006: Password Strength Indicator', () => {
+    it('REQ-AUTH-006: should not show strength indicator on login mode', () => {
+      render(<LoginPanel />);
+
+      // In login mode, no strength indicator should appear
+      expect(screen.queryByText(/密码强度/i)).not.toBeInTheDocument();
+    });
+
+    it('REQ-AUTH-006: should show strength indicator in register mode when password has value', async () => {
+      const user = userEvent.setup();
+      render(<LoginPanel />);
+
+      // Switch to register mode
+      await user.click(screen.getByText(/没有账号.*注册/i));
+
+      const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+
+      // Type a password
+      await user.type(passwordInput, 'a');
+
+      // Should show strength indicator
+      await waitFor(() => {
+        expect(screen.getByText(/密码强度/i)).toBeInTheDocument();
+      });
+    });
+
+    it('REQ-AUTH-006: should show "弱" for password missing requirements', async () => {
+      const user = userEvent.setup();
+      render(<LoginPanel />);
+
+      // Switch to register mode
+      await user.click(screen.getByText(/没有账号.*注册/i));
+
+      const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+
+      // Type a weak password
+      await user.type(passwordInput, 'abc');
+
+      await waitFor(() => {
+        expect(screen.getByText(/密码强度：弱/i)).toBeInTheDocument();
+      });
+    });
+
+    it('REQ-AUTH-006: should show "强" for valid password', async () => {
+      const user = userEvent.setup();
+      render(<LoginPanel />);
+
+      // Switch to register mode
+      await user.click(screen.getByText(/没有账号.*注册/i));
+
+      const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+
+      // Type a strong password
+      await user.type(passwordInput, 'Abcd1234');
+
+      await waitFor(() => {
+        expect(screen.getByText(/密码强度：强/i)).toBeInTheDocument();
+      });
+    });
+
+    it('REQ-AUTH-006: should show "非常强" for password with special characters and 12+ chars', async () => {
+      const user = userEvent.setup();
+      render(<LoginPanel />);
+
+      // Switch to register mode
+      await user.click(screen.getByText(/没有账号.*注册/i));
+
+      const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+
+      // Type a very strong password
+      await user.type(passwordInput, 'Abcdefgh1234!@#');
+
+      await waitFor(() => {
+        expect(screen.getByText(/密码强度：非常强/i)).toBeInTheDocument();
+      });
+    });
+
+    it('REQ-AUTH-006: should show unchecked requirement for short password', async () => {
+      const user = userEvent.setup();
+      render(<LoginPanel />);
+
+      // Switch to register mode
+      await user.click(screen.getByText(/没有账号.*注册/i));
+
+      const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+
+      // Type a short password
+      await user.type(passwordInput, 'Abc12');
+
+      await waitFor(() => {
+        // Should show unchecked "至少8个字符"
+        expect(screen.getByText(/至少8个字符/i)).toBeInTheDocument();
+        // The requirement text should not be green (unchecked)
+        const lengthReq = screen.getByText(/至少8个字符/i);
+        expect(lengthReq).not.toHaveClass('text-green-600');
+      });
+    });
+
+    it('REQ-AUTH-006: should show checked requirement when length is satisfied', async () => {
+      const user = userEvent.setup();
+      render(<LoginPanel />);
+
+      // Switch to register mode
+      await user.click(screen.getByText(/没有账号.*注册/i));
+
+      const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+
+      // Type a password that satisfies length
+      await user.type(passwordInput, 'Abcdefgh');
+
+      await waitFor(() => {
+        // Should show checked "至少8个字符" with green color
+        const lengthReq = screen.getByText(/至少8个字符/i);
+        expect(lengthReq).toHaveClass('text-green-600');
+      });
+    });
+
+    it('REQ-AUTH-006: should show all requirements unchecked for empty password area', async () => {
+      const user = userEvent.setup();
+      render(<LoginPanel />);
+
+      // Switch to register mode
+      await user.click(screen.getByText(/没有账号.*注册/i));
+
+      // No password typed - no indicator shown
+      expect(screen.queryByText(/至少8个字符/i)).not.toBeInTheDocument();
+    });
+
+    it('REQ-AUTH-006: should update strength indicator in real-time', async () => {
+      const user = userEvent.setup();
+      render(<LoginPanel />);
+
+      // Switch to register mode
+      await user.click(screen.getByText(/没有账号.*注册/i));
+
+      const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+
+      // Type weak password first
+      await user.type(passwordInput, 'abc');
+
+      await waitFor(() => {
+        expect(screen.getByText(/密码强度：弱/i)).toBeInTheDocument();
+      });
+
+      // Clear and type strong password
+      await user.clear(passwordInput);
+      await user.type(passwordInput, 'Abcd1234');
+
+      await waitFor(() => {
+        expect(screen.getByText(/密码强度：强/i)).toBeInTheDocument();
+      });
     });
   });
 });

@@ -1,9 +1,176 @@
 /**
  * LoginPanel - 登录/注册界面
+ * REQ-UI-001: 登录/注册表单
+ * REQ-AUTH-006: 密码强度验证功能
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
+
+/**
+ * REQ-AUTH-006: 密码强度验证
+ * 根据密码内容计算强度级别
+ */
+function validatePasswordStrength(password: string): {
+  isValid: boolean;
+  errors: string[];
+  strength: 'weak' | 'medium' | 'strong' | 'very_strong';
+  checks: {
+    length: boolean;
+    uppercase: boolean;
+    lowercase: boolean;
+    digit: boolean;
+  };
+} {
+  const checks = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    digit: /\d/.test(password),
+  };
+
+  const errors: string[] = [];
+
+  if (!checks.length) {
+    errors.push('密码长度至少8个字符');
+  }
+  if (!checks.uppercase) {
+    errors.push('密码需包含至少1个大写字母');
+  }
+  if (!checks.lowercase) {
+    errors.push('密码需包含至少1个小写字母');
+  }
+  if (!checks.digit) {
+    errors.push('密码需包含至少1个数字');
+  }
+
+  // Determine strength
+  let strength: 'weak' | 'medium' | 'strong' | 'very_strong' = 'weak';
+  if (errors.length === 0) {
+    if (password.length >= 12 && /[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      strength = 'very_strong';
+    } else {
+      strength = 'strong';
+    }
+  } else if (password.length > 0) {
+    strength = 'weak';
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    strength,
+    checks,
+  };
+}
+
+/**
+ * REQ-AUTH-006: 密码强度指示器组件
+ */
+function PasswordStrengthIndicator({ password }: { password: string }) {
+  const validation = useMemo(() => validatePasswordStrength(password), [password]);
+
+  if (!password) {
+    return null;
+  }
+
+  const getStrengthColor = () => {
+    switch (validation.strength) {
+      case 'very_strong':
+        return 'bg-green-600';
+      case 'strong':
+        return 'bg-green-500';
+      case 'medium':
+        return 'bg-yellow-500';
+      case 'weak':
+      default:
+        return 'bg-red-500';
+    }
+  };
+
+  const getStrengthText = () => {
+    switch (validation.strength) {
+      case 'very_strong':
+        return '密码强度：非常强';
+      case 'strong':
+        return '密码强度：强';
+      case 'medium':
+        return '密码强度：中';
+      case 'weak':
+      default:
+        return '密码强度：弱';
+    }
+  };
+
+  return (
+    <div className="mt-2 space-y-2">
+      {/* 强度条 */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className={`h-full transition-all duration-300 ${getStrengthColor()}`}
+            style={{
+              width: validation.strength === 'weak' ? '25%' :
+                     validation.strength === 'medium' ? '50%' :
+                     validation.strength === 'strong' ? '75%' : '100%'
+            }}
+          />
+        </div>
+        <span className={`text-xs font-medium ${
+          validation.strength === 'weak' ? 'text-red-600' :
+          validation.strength === 'strong' || validation.strength === 'very_strong' ? 'text-green-600' :
+          'text-yellow-600'
+        }`}>
+          {getStrengthText()}
+        </span>
+      </div>
+
+      {/* 要求清单 */}
+      <div className="text-xs space-y-1">
+        <div className="flex items-center gap-1">
+          {validation.checks.length ? (
+            <span className="text-green-600">✓</span>
+          ) : (
+            <span className="text-gray-400">○</span>
+          )}
+          <span className={validation.checks.length ? 'text-green-600' : 'text-gray-500'}>
+            至少8个字符
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {validation.checks.uppercase ? (
+            <span className="text-green-600">✓</span>
+          ) : (
+            <span className="text-gray-400">○</span>
+          )}
+          <span className={validation.checks.uppercase ? 'text-green-600' : 'text-gray-500'}>
+            至少1个大写字母
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {validation.checks.lowercase ? (
+            <span className="text-green-600">✓</span>
+          ) : (
+            <span className="text-gray-400">○</span>
+          )}
+          <span className={validation.checks.lowercase ? 'text-green-600' : 'text-gray-500'}>
+            至少1个小写字母
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {validation.checks.digit ? (
+            <span className="text-green-600">✓</span>
+          ) : (
+            <span className="text-gray-400">○</span>
+          )}
+          <span className={validation.checks.digit ? 'text-green-600' : 'text-gray-500'}>
+            至少1个数字
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function LoginPanel() {
   const { login, register, isLoading, error, clearError } = useAuth();
@@ -75,6 +242,10 @@ export function LoginPanel() {
               disabled={isLoading}
               minLength={6}
             />
+            {/* REQ-AUTH-006: 密码强度指示器 */}
+            {!isLoginMode && password && (
+              <PasswordStrengthIndicator password={password} />
+            )}
           </div>
 
           {error && (
@@ -107,7 +278,7 @@ export function LoginPanel() {
         {/* 测试账号提示 */}
         <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-blue-800 text-xs">
-            💡 测试账号: test / 123456
+            💡 测试账号: test / Password123
           </p>
         </div>
       </div>
