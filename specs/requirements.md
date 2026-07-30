@@ -63,10 +63,10 @@
 
 | ID | 需求 | 验收条件 | 状态 | 测试锚点 |
 |---|---|---|---|---|
-| REQ-UI-001 | 登录/注册界面 | 主界面含登录/注册表单 | 📝 规划中 | 待补(E2E) |
-| REQ-UI-002 | 词库选择界面 | 登录后展示词库列表供选择 | 📝 规划中 | 待补(E2E) |
-| REQ-UI-003 | 单词学习界面 | 展示单词拼写/音标/释义/例句,含"已掌握"勾选按钮 | 📝 规划中 | 待补(E2E) |
-| REQ-UI-004 | 进度统计界面 | 展示当前词库学习进度(已学/总数) | 📝 规划中 | 待补(E2E) |
+| REQ-UI-001 | 登录/注册界面 | 主界面含登录/注册表单 | ✅ 已验收 | `frontend/src/components/LoginPanel.test.tsx` |
+| REQ-UI-002 | 词库选择界面 | 登录后展示词库列表供选择 | ✅ 已验收 | `frontend/src/components/WordBankSelect.test.tsx` |
+| REQ-UI-003 | 单词学习界面 | 展示单词拼写/音标/释义/例句,含"已掌握"勾选按钮 | ✅ 已验收 | `frontend/src/components/WordCard.test.tsx` |
+| REQ-UI-004 | 进度统计界面 | 展示当前词库学习进度(已学/总数) | ✅ 已验收 | `frontend/src/components/WordCard.progress.test.tsx` |
 | REQ-UI-005 | 窗口置顶(桌面版) | 桌面应用支持窗口置顶功能 | 📝 规划中 | 待补(E2E) |
 | REQ-UI-006 | 小窗口模式 | 支持小窗口展示,方便随时学习 | 📝 规划中 | 待补(E2E) |
 
