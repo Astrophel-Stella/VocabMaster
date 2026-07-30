@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     app_name: str = "VocabMaster API"
     debug: bool = True
 
+    # Email service (ADR-0012)
+    email_provider: str = "console"  # "console" or "aliyun"
+    frontend_url: str = "http://localhost:5173"  # Frontend base URL for email links
+
+    # Rate limiting for email endpoints
+    resend_verification_rate_limit: int = 3  # max requests per window
+    resend_verification_rate_window_minutes: int = 5  # window in minutes
+
     class Config:
         env_file = ".env"
         case_sensitive = False
