@@ -1,9 +1,9 @@
 /**
  * E2E tests for Authentication functionality
- * REQ-UI-001 / REQ-AUTH-001~005
+ * REQ-UI-001 / REQ-AUTH-001~007
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, Page, Locator } from '@playwright/test';
 import { LoginPage, loginAsTestUser } from '../shared/utils';
 
 test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
@@ -342,4 +342,260 @@ test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
       await expect(page.getByText('密码强度：非常强')).toBeVisible();
     });
   });
+
+  // REQ-AUTH-007: Forgot Password / Reset Password E2E Tests
+  test.describe('REQ-AUTH-007: Forgot Password / Reset Password', () => {
+
+    test('REQ-AUTH-007: Forgot password page renders correctly', async ({ page }) => {
+      const forgotPasswordPage = new ForgotPasswordPage(page);
+      await forgotPasswordPage.goto();
+
+      // Verify page elements are visible
+      await expect(page.getByRole('heading', { name: '忘记密码' })).toBeVisible();
+      await expect(page.getByLabel('邮箱')).toBeVisible();
+      await expect(page.getByRole('button', { name: '发送重置邮件' })).toBeVisible();
+      await expect(page.getByText('返回登录')).toBeVisible();
+    });
+
+    test('REQ-AUTH-007: Forgot password link on login page works', async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      await loginPage.goto();
+
+      // Click the forgot password link
+      await page.getByText('忘记密码？').click();
+
+      // Should navigate to forgot password page
+      await expect(page.getByRole('heading', { name: '忘记密码' })).toBeVisible();
+    });
+
+    test('REQ-AUTH-007: Unregistered email shows error', async ({ page }) => {
+      const forgotPasswordPage = new ForgotPasswordPage(page);
+      await forgotPasswordPage.goto();
+
+      // Enter unregistered email
+      await forgotPasswordPage.sendResetEmail('nonexistent@example.com');
+
+      // Should show error message
+      await forgotPasswordPage.expectErrorVisible();
+      const errorText = await forgotPasswordPage.errorMessage.textContent();
+      expect(errorText).toContain('该邮箱未注册');
+    });
+
+    test('REQ-AUTH-007: Registered email sends reset email and shows success', async ({ page }) => {
+      const forgotPasswordPage = new ForgotPasswordPage(page);
+      await forgotPasswordPage.goto();
+
+      // Register a test user first
+      const uniqueEmail = `reset_${Date.now()}@test.com`;
+      const loginPage = new LoginPage(page);
+      await loginPage.goto();
+      await loginPage.switchToRegister();
+      await loginPage.usernameInput.fill(`resetuser_${Date.now()}`);
+      await loginPage.emailInput.fill(uniqueEmail);
+      await loginPage.passwordInput.fill('Password123');
+      await loginPage.submitButton.click();
+      await expect(page.getByRole('heading', { name: '选择词库' })).toBeVisible({ timeout: 10000 });
+
+      // Go to forgot password page
+      await forgotPasswordPage.goto();
+
+      // Enter registered email
+      await forgotPasswordPage.sendResetEmail(uniqueEmail);
+
+      // Should show success message
+      await expect(page.getByText('邮件已发送')).toBeVisible();
+      await expect(page.getByText(uniqueEmail)).toBeVisible();
+      await expect(page.getByText('24 小时')).toBeVisible();
+    });
+
+    test('REQ-AUTH-007: Reset password page renders with valid token', async ({ page }) => {
+      // Mock a valid token scenario
+      const resetPasswordPage = new ResetPasswordPage(page, 'valid-test-token');
+      await resetPasswordPage.goto();
+
+      // Verify page elements are visible
+      await expect(page.getByRole('heading', { name: '重置密码' })).toBeVisible();
+      await expect(page.getByLabel('新密码')).toBeVisible();
+      await expect(page.getByLabel('确认密码')).toBeVisible();
+      await expect(page.getByRole('button', { name: '重置密码' })).toBeVisible();
+    });
+
+    test('REQ-AUTH-007: Password strength indicator on reset page', async ({ page }) => {
+      const resetPasswordPage = new ResetPasswordPage(page, 'test-token');
+      await resetPasswordPage.goto();
+
+      // Enter weak password
+      await page.getByLabel('新密码').fill('weak');
+
+      // Should show weak strength indicator
+      await expect(page.getByText('密码强度：弱')).toBeVisible();
+
+      // Enter strong password
+      await page.getByLabel('新密码').fill('StrongPassword123');
+      await expect(page.getByText('密码强度：强')).toBeVisible();
+    });
+
+    test('REQ-AUTH-007: Password mismatch shows error', async ({ page }) => {
+      // Mock API to simulate reset scenario
+      await page.route('**/api/auth/reset-password', route => {
+        route.fulfill({
+          status: 200,
+          body: JSON.stringify({ message: '密码重置成功' }),
+        });
+      });
+
+      const resetPasswordPage = new ResetPasswordPage(page, 'test-token');
+      await resetPasswordPage.goto();
+
+      // Enter mismatched passwords
+      await page.getByLabel('新密码').fill('StrongPassword123');
+      await page.getByLabel('确认密码').fill('DifferentPassword123');
+
+      // Submit form
+      await page.getByRole('button', { name: '重置密码' }).click();
+
+      // Should show validation error
+      await expect(page.getByText('两次密码输入不一致')).toBeVisible();
+    });
+
+    test('REQ-AUTH-007: Reset with invalid token shows error', async ({ page }) => {
+      // Mock API error response
+      await page.route('**/api/auth/reset-password', route => {
+        route.fulfill({
+          status: 400,
+          body: JSON.stringify({ detail: '链接已失效' }),
+        });
+      });
+
+      const resetPasswordPage = new ResetPasswordPage(page, 'invalid-token');
+      await resetPasswordPage.goto();
+
+      // Enter valid password
+      await page.getByLabel('新密码').fill('StrongPassword123');
+      await page.getByLabel('确认密码').fill('StrongPassword123');
+
+      // Submit form
+      await page.getByRole('button', { name: '重置密码' }).click();
+
+      // Should show error message
+      await expect(page.getByText('链接已失效')).toBeVisible();
+    });
+
+    test('REQ-AUTH-007: Reset with weak password shows error', async ({ page }) => {
+      const resetPasswordPage = new ResetPasswordPage(page, 'test-token');
+      await resetPasswordPage.goto();
+
+      // Enter weak password that doesn't match requirements
+      await page.getByLabel('新密码').fill('weak');
+      await page.getByLabel('确认密码').fill('weak');
+
+      // Submit form
+      await page.getByRole('button', { name: '重置密码' }).click();
+
+      // Should show validation error about password strength
+      await expect(page.locator('[class*="bg-red-50"]')).toBeVisible();
+    });
+
+    test('REQ-AUTH-007: Successful reset redirects to login', async ({ page }) => {
+      // Mock successful reset API
+      await page.route('**/api/auth/reset-password', route => {
+        route.fulfill({
+          status: 200,
+          body: JSON.stringify({ message: '密码重置成功' }),
+        });
+      });
+
+      const resetPasswordPage = new ResetPasswordPage(page, 'valid-token');
+      await resetPasswordPage.goto();
+
+      // Enter strong matching passwords
+      await page.getByLabel('新密码').fill('StrongPassword123');
+      await page.getByLabel('确认密码').fill('StrongPassword123');
+
+      // Submit form
+      await page.getByRole('button', { name: '重置密码' }).click();
+
+      // Should show success message
+      await expect(page.getByText('密码重置成功')).toBeVisible();
+
+      // Click return to login
+      await page.getByRole('button', { name: '返回登录' }).click();
+
+      // Should navigate back to login page
+      await expect(page.getByRole('heading', { name: 'VocabMaster' })).toBeVisible();
+    });
+
+    test('REQ-AUTH-007: Back to login navigation works', async ({ page }) => {
+      const forgotPasswordPage = new ForgotPasswordPage(page);
+      await forgotPasswordPage.goto();
+
+      // Click back to login link
+      await page.getByText('返回登录').click();
+
+      // Should navigate back to login page
+      await expect(page.getByRole('heading', { name: 'VocabMaster' })).toBeVisible();
+      await expect(page.getByText('英语单词学习助手')).toBeVisible();
+    });
+  });
 });
+
+/**
+ * ForgotPassword Page Object
+ */
+class ForgotPasswordPage {
+  readonly page: Page;
+  readonly emailInput: Locator;
+  readonly submitButton: Locator;
+  readonly errorMessage: Locator;
+  readonly backButton: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.emailInput = page.getByLabel('邮箱');
+    this.submitButton = page.getByRole('button', { name: '发送重置邮件' });
+    this.errorMessage = page.locator('[class*="bg-red-50"] p').first();
+    this.backButton = page.getByText('返回登录');
+  }
+
+  async goto() {
+    await this.page.goto('/forgot-password');
+  }
+
+  async sendResetEmail(email: string) {
+    await this.emailInput.fill(email);
+    await this.submitButton.click();
+  }
+
+  async expectErrorVisible() {
+    await expect(this.errorMessage).toBeVisible();
+  }
+}
+
+/**
+ * ResetPassword Page Object
+ */
+class ResetPasswordPage {
+  readonly page: Page;
+  readonly token: string;
+  readonly passwordInput: Locator;
+  readonly confirmPasswordInput: Locator;
+  readonly submitButton: Locator;
+
+  constructor(page: Page, token: string) {
+    this.page = page;
+    this.token = token;
+    this.passwordInput = page.getByLabel('新密码');
+    this.confirmPasswordInput = page.getByLabel('确认密码');
+    this.submitButton = page.getByRole('button', { name: '重置密码' });
+  }
+
+  async goto() {
+    await this.page.goto(`/reset-password?token=${this.token}`);
+  }
+
+  async resetPassword(newPassword: string) {
+    await this.passwordInput.fill(newPassword);
+    await this.confirmPasswordInput.fill(newPassword);
+    await this.submitButton.click();
+  }
+}
