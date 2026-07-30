@@ -19,6 +19,7 @@ class WordBankResponse(BaseModel):
     name: str
     description: Optional[str]
     total_words: int
+    difficulty_level: Optional[int]
 
     class Config:
         from_attributes = True
@@ -31,6 +32,12 @@ class WordResponse(BaseModel):
     pronunciation_url: Optional[str]
     meaning: str
     example_sentence: Optional[str]
+    # Extended fields for REQ-WB-004
+    word_root: Optional[str]
+    difficulty_level: Optional[int]
+    frequency: Optional[int]
+    synonyms: Optional[str]
+    antonyms: Optional[str]
 
     class Config:
         from_attributes = True
