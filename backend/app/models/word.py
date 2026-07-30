@@ -34,6 +34,12 @@ class Word(Base):
     meaning = Column(Text, nullable=False)  # 中文释义
     example_sentence = Column(Text)  # 例句
     order_index = Column(Integer, default=0)  # 排序索引
+    # REQ-WB-004: 扩展字段
+    word_root = Column(String(255))  # 词根词缀
+    difficulty_level = Column(Integer, default=1)  # 难度等级 1-5
+    frequency = Column(Integer)  # 词频
+    synonyms = Column(Text)  # 同义词（JSON格式）
+    antonyms = Column(Text)  # 反义词（JSON格式）
 
     # Relationship
     word_bank = relationship("WordBank", back_populates="words")
