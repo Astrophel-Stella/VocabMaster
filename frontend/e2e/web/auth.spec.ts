@@ -285,10 +285,11 @@ test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
 
       const uniqueUsername = `weakuser_${Date.now()}`;
 
-      // Try to register with weak password (doesn't meet requirements)
+      // Try to register with weak password (passes HTML minLength=6 but fails backend strength validation)
+      // "abcdefgh" has 8 chars but missing uppercase and digit
       await loginPage.usernameInput.fill(uniqueUsername);
       await loginPage.emailInput.fill(`${uniqueUsername}@test.com`);
-      await loginPage.passwordInput.fill('weak');
+      await loginPage.passwordInput.fill('abcdefgh');
 
       await loginPage.submitButton.click();
 
