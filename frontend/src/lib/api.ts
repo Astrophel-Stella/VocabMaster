@@ -186,3 +186,27 @@ export async function unmarkWordMastered(wordId: number, token: string): Promise
     throw new Error('Failed to unmark word');
   }
 }
+
+export async function changePassword(oldPassword: string, newPassword: string, token: string): Promise<{ message: string }> {
+  const response = await apiFetch(`${API_BASE}/auth/password`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    if (response.status === 400) {
+      throw new Error(error.detail || '密码修改失败');
+    }
+    if (response.status === 422) {
+      throw new Error(error.detail?.message || '密码强度不足');
+    }
+    throw new Error(error.detail || '密码修改失败');
+  }
+
+  return response.json();
+}

@@ -35,7 +35,7 @@ test.describe('Progress Statistics - REQ-UI-004 / REQ-PROG', () => {
     await wordLearningPage.expectLoaded();
 
     // First, ensure word is NOT mastered (force unmark if needed)
-    let isMastered = await wordLearningPage.isMastered();
+    const isMastered = await wordLearningPage.isMastered();
     if (isMastered) {
       await wordLearningPage.toggleMastered();
       await page.waitForTimeout(500);
@@ -90,7 +90,7 @@ test.describe('Progress Statistics - REQ-UI-004 / REQ-PROG', () => {
     await wordLearningPage.expectLoaded();
 
     // Mark first word as mastered
-    let isMastered = await wordLearningPage.isMastered();
+    const isMastered = await wordLearningPage.isMastered();
     if (!isMastered) {
       await wordLearningPage.toggleMastered();
       await page.waitForTimeout(500);
