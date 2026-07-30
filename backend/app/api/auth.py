@@ -13,6 +13,11 @@ from app.database import get_db
 from app.config import settings
 from app.models.user import User
 from app.services.password_service import validate_password_strength
+from app.services.email_service import (
+    generate_token,
+    get_token_expiry,
+    get_email_service,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -44,6 +49,22 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+
+class ForgotPasswordRequest(BaseModel):
+    """REQ-AUTH-007: Forgot password request"""
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """REQ-AUTH-007: Reset password request"""
+    token: str
+    new_password: str
+
+
+class MessageResponse(BaseModel):
+    """Generic message response"""
+    message: str
 
 
 class ChangePasswordRequest(BaseModel):
@@ -157,6 +178,95 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+# REQ-AUTH-007: Forgot password endpoint
+@router.post("/forgot-password", response_model=MessageResponse)
+def forgot_password(
+    request: ForgotPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    REQ-AUTH-007: Send password reset email.
+
+    Given a registered email, when requesting reset, send an email with
+    a reset token (valid for 24 hours, single use).
+    """
+    # Find user by email
+    user = db.query(User).filter(User.email == request.email).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="该邮箱未注册"
+        )
+
+    # Generate new reset token (invalidates any previous tokens)
+    token = generate_token()
+    user.reset_token = token
+    user.reset_token_expires = get_token_expiry(hours=24)
+    db.commit()
+
+    # Send reset email
+    email_service = get_email_service()
+    reset_url = f"{settings.frontend_url}/reset-password"
+    email_service.send_password_reset_email(
+        to=user.email,
+        username=user.username,
+        token=token,
+        reset_url=reset_url
+    )
+
+    return {"message": "重置邮件已发送，请查收邮件"}
+
+
+# REQ-AUTH-007: Reset password endpoint
+@router.post("/reset-password", response_model=MessageResponse)
+def reset_password(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    REQ-AUTH-007: Reset password using token.
+
+    Validates the token, checks expiry, validates new password strength,
+    and updates the password.
+    """
+    # Find user by reset token
+    user = db.query(User).filter(User.reset_token == request.token).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="链接已失效"
+        )
+
+    # Check if token is expired
+    if user.reset_token_expires and user.reset_token_expires < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="链接已过期，请重新申请重置"
+        )
+
+    # Validate new password strength (REQ-AUTH-006)
+    validation = validate_password_strength(request.new_password)
+    if not validation.is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "message": "密码强度不足",
+                "errors": validation.errors
+            }
+        )
+
+    # Update password and clear reset token
+    user.hashed_password = get_password_hash(request.new_password)
+    user.reset_token = None
+    user.reset_token_expires = None
+    db.commit()
+
+    return {"message": "密码重置成功，请重新登录"}
+
+
+# REQ-AUTH-009: Change password endpoint
 @router.put("/password")
 def change_password(
     request: ChangePasswordRequest,

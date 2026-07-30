@@ -220,6 +220,182 @@ def test_get_current_user(client: TestClient):
     assert data["username"] == "test"
 
 
+# REQ-AUTH-007: Forgot password tests
+class TestForgotPassword:
+    """REQ-AUTH-007: Forgot password flow test cases"""
+
+    def test_REQ_AUTH_007_forgot_password_unregistered_email(self, client: TestClient):
+        """REQ-AUTH-007: 未注册邮箱应返回错误"""
+        response = client.post(
+            "/api/auth/forgot-password",
+            json={"email": "nonexistent@example.com"}
+        )
+        assert response.status_code == 400
+        assert "该邮箱未注册" in response.json()["detail"]
+
+    def test_REQ_AUTH_007_forgot_password_success(self, client: TestClient):
+        """REQ-AUTH-007: 已注册邮箱应发送重置邮件"""
+        # Register user
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "resetuser",
+                "email": "reset@example.com",
+                "password": "Password123"
+            }
+        )
+
+        # Request password reset
+        response = client.post(
+            "/api/auth/forgot-password",
+            json={"email": "reset@example.com"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "重置邮件已发送" in data["message"]
+
+    def test_REQ_AUTH_007_reset_password_invalid_token(self, client: TestClient):
+        """REQ-AUTH-007: 无效token应返回链接已失效"""
+        response = client.post(
+            "/api/auth/reset-password",
+            json={
+                "token": "invalid-token",
+                "new_password": "NewPassword123"
+            }
+        )
+        assert response.status_code == 400
+        assert "链接已失效" in response.json()["detail"]
+
+    def test_REQ_AUTH_007_reset_password_weak_password(self, client: TestClient, db_session):
+        """REQ-AUTH-007: 弱密码应返回强度错误"""
+        from app.models.user import User
+
+        # Register user and request reset
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "weakpassuser",
+                "email": "weakpass@example.com",
+                "password": "Password123"
+            }
+        )
+        client.post(
+            "/api/auth/forgot-password",
+            json={"email": "weakpass@example.com"}
+        )
+
+        # Get the token from the test database
+        user = db_session.query(User).filter(User.email == "weakpass@example.com").first()
+        token = user.reset_token
+
+        # Try to reset with weak password
+        response = client.post(
+            "/api/auth/reset-password",
+            json={
+                "token": token,
+                "new_password": "weak"
+            }
+        )
+        assert response.status_code == 422
+
+    def test_REQ_AUTH_007_reset_password_success(self, client: TestClient, db_session):
+        """REQ-AUTH-007: 有效token和强密码应成功重置"""
+        from app.models.user import User
+
+        # Register user and request reset
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "resetpassuser",
+                "email": "resetpass@example.com",
+                "password": "OldPassword123"
+            }
+        )
+        client.post(
+            "/api/auth/forgot-password",
+            json={"email": "resetpass@example.com"}
+        )
+
+        # Get the token from the test database
+        user = db_session.query(User).filter(User.email == "resetpass@example.com").first()
+        token = user.reset_token
+
+        # Reset password with new strong password
+        response = client.post(
+            "/api/auth/reset-password",
+            json={
+                "token": token,
+                "new_password": "NewPassword456"
+            }
+        )
+        assert response.status_code == 200
+        assert "密码重置成功" in response.json()["message"]
+
+        # Verify can login with new password
+        login_response = client.post(
+            "/api/auth/login",
+            data={
+                "username": "resetpassuser",
+                "password": "NewPassword456"
+            }
+        )
+        assert login_response.status_code == 200
+        assert "access_token" in login_response.json()
+
+        # Verify old password no longer works
+        old_login = client.post(
+            "/api/auth/login",
+            data={
+                "username": "resetpassuser",
+                "password": "OldPassword123"
+            }
+        )
+        assert old_login.status_code == 401
+
+    def test_REQ_AUTH_007_token_single_use(self, client: TestClient, db_session):
+        """REQ-AUTH-007: token使用后应失效"""
+        from app.models.user import User
+
+        # Register user and request reset
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "singleuse",
+                "email": "singleuse@example.com",
+                "password": "OldPassword123"
+            }
+        )
+        client.post(
+            "/api/auth/forgot-password",
+            json={"email": "singleuse@example.com"}
+        )
+
+        # Get the token
+        user = db_session.query(User).filter(User.email == "singleuse@example.com").first()
+        token = user.reset_token
+
+        # First reset - should succeed
+        response1 = client.post(
+            "/api/auth/reset-password",
+            json={
+                "token": token,
+                "new_password": "NewPassword456"
+            }
+        )
+        assert response1.status_code == 200
+
+        # Second reset with same token - should fail
+        response2 = client.post(
+            "/api/auth/reset-password",
+            json={
+                "token": token,
+                "new_password": "AnotherPassword789"
+            }
+        )
+        assert response2.status_code == 400
+        assert "链接已失效" in response2.json()["detail"]
+
+
 # REQ-AUTH-009: Password change tests
 class TestChangePassword:
     """REQ-AUTH-009: Password change test cases"""

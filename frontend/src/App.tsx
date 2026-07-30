@@ -6,6 +6,8 @@ import { useProgress } from './hooks/useProgress';
 import { LoginPanel } from './components/LoginPanel';
 import { WordBankSelect } from './components/WordBankSelect';
 import { WordCard } from './components/WordCard';
+import { ForgotPassword } from './components/ForgotPassword';
+import { ResetPassword } from './components/ResetPassword';
 import { ChangePassword } from './components/ChangePassword';
 import { getAdapter } from './adapters';
 
@@ -14,9 +16,19 @@ export default function App() {
   const { selectedWordBank, reset } = useWordStore();
   const { loadWords } = useWords();
   const { loadProgress } = useProgress();
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [showChangePassword, setShowChangePassword] = useState(false);
 
   const platform = getAdapter().name;
+
+  // Handle browser navigation (back/forward)
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Load words when word bank is selected
   // Note: loadWords/loadProgress are intentionally omitted from deps as they are
@@ -37,6 +49,23 @@ export default function App() {
     logout();
     reset();
   };
+
+  // REQ-AUTH-007: Forgot password route
+  if (currentPath === '/forgot-password') {
+    return <ForgotPassword />;
+  }
+
+  // REQ-AUTH-007: Reset password route
+  if (currentPath.startsWith('/reset-password')) {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      return <ResetPassword token={token} />;
+    }
+    // No token - redirect to login
+    window.history.pushState({}, '', '/');
+    setCurrentPath('/');
+  }
 
   // Show login if not authenticated
   if (!isAuthenticated) {
