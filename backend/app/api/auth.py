@@ -12,6 +12,7 @@ from typing import Optional
 from app.database import get_db
 from app.config import settings
 from app.models.user import User
+from app.services.password_service import validate_password_strength
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -90,6 +91,17 @@ async def get_current_user(
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(user_create: UserCreate, db: Session = Depends(get_db)):
     """Register a new user"""
+    # Validate password strength (REQ-AUTH-006)
+    validation = validate_password_strength(user_create.password)
+    if not validation.is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "message": "密码强度不足",
+                "errors": validation.errors
+            }
+        )
+
     # Check if username exists
     if db.query(User).filter(User.username == user_create.username).first():
         raise HTTPException(
