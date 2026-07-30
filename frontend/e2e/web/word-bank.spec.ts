@@ -75,7 +75,7 @@ test.describe('Word Bank Selection - REQ-UI-002 / REQ-WB-001', () => {
   test('REQ-WB-001: Loading state shows spinner', async ({ page }) => {
     // Slow down the API response to see loading state
     await page.route('**/api/word-banks', async route => {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       await route.continue();
     });
 
@@ -83,10 +83,9 @@ test.describe('Word Bank Selection - REQ-UI-002 / REQ-WB-001', () => {
     await loginPage.goto();
     await loginPage.login('test', '123456');
 
-    // Loading spinner should appear briefly
+    // Loading spinner should be visible during loading
     const wordBankPage = new WordBankPage(page);
-    // Either spinner is visible or already loaded (depends on timing)
-    const spinnerVisible = await wordBankPage.loadingSpinner.isVisible().catch(() => false);
+    await expect(wordBankPage.loadingSpinner).toBeVisible({ timeout: 500 });
 
     // Eventually the title should appear
     await wordBankPage.expectLoaded();
@@ -101,6 +100,6 @@ test.describe('Word Bank Selection - REQ-UI-002 / REQ-WB-001', () => {
     await loginPage.login('test', '123456');
 
     // Wait for error message to appear
-    await expect(page.locator('.text-red-600')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[class*="bg-red-50"] p')).toBeVisible({ timeout: 10000 });
   });
 });

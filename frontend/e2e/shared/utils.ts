@@ -25,7 +25,8 @@ export class LoginPage {
     this.emailInput = page.getByLabel('邮箱');
     this.submitButton = page.getByRole('button', { name: /登录|注册/ });
     this.toggleModeButton = page.getByRole('button', { name: /没有账号|已有账号/ });
-    this.errorMessage = page.locator('.text-red-600');
+    // Error message: find the error container (has red background) and get the text inside
+    this.errorMessage = page.locator('[class*="bg-red-50"] p').first();
     this.testAccountHint = page.getByText('测试账号');
   }
 
@@ -73,7 +74,8 @@ export class WordBankPage {
     this.page = page;
     this.title = page.getByRole('heading', { name: '选择词库' });
     this.wordBankCards = page.locator('button:has(h3)');
-    this.loadingSpinner = page.locator('.animate-spin');
+    // Loading spinner: the animated loading indicator
+    this.loadingSpinner = page.locator('[class*="animate-spin"]');
   }
 
   async expectLoaded() {
@@ -114,15 +116,23 @@ export class WordLearningPage {
     this.page = page;
     this.backButton = page.getByRole('button', { name: '返回' });
     this.wordSpelling = page.getByRole('heading', { level: 1 });
-    this.wordPhonetic = page.locator('p.text-xl.text-gray-500');
-    this.wordMeaning = page.locator('.bg-gray-50 p.text-lg');
+    // Phonetic: find the text below the spelling heading (gray text, larger size)
+    this.wordPhonetic = page.getByRole('heading', { level: 1 }).locator('..').locator('p').filter({ hasText: /^\/.*\/$/ });
+    // Meaning: the main content in the gray box
+    this.wordMeaning = page.locator('[class*="bg-gray-50"] p').first();
     this.wordExample = page.getByText('例句:');
     this.prevButton = page.getByRole('button', { name: '上一个' });
     this.nextButton = page.getByRole('button', { name: '下一个' });
     this.masteredButton = page.getByRole('button', { name: /标记已掌握|已掌握/ });
     this.progressText = page.getByText(/进度:/);
     this.masteredCount = page.getByText(/已掌握:/);
-    this.navigationDots = page.locator('button[class*="rounded-full"][class*="w-2"][class*="h-2"]');
+    // Navigation dots: small round buttons used for word navigation
+    // Filter buttons by their small size characteristic (w-2 h-2 in Tailwind)
+    this.navigationDots = page.getByRole('button').filter({
+      has: page.locator('[class*="rounded-full"]')
+    }).filter({
+      has: page.locator('[class*="w-2"][class*="h-2"]')
+    });
   }
 
   async expectLoaded() {
