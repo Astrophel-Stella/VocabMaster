@@ -46,6 +46,11 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
 # Helper functions
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
@@ -150,3 +155,42 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information"""
     return current_user
+
+
+@router.put("/password")
+def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Change password for authenticated user (REQ-AUTH-009)"""
+    # Verify old password
+    if not verify_password(request.old_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="旧密码错误"
+        )
+
+    # Check new password is different from old password
+    if verify_password(request.new_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="新密码不能与旧密码相同"
+        )
+
+    # Validate new password strength (REQ-AUTH-006)
+    validation = validate_password_strength(request.new_password)
+    if not validation.is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "message": "密码强度不足",
+                "errors": validation.errors
+            }
+        )
+
+    # Update password
+    current_user.hashed_password = get_password_hash(request.new_password)
+    db.commit()
+
+    return {"message": "密码修改成功，请重新登录"}

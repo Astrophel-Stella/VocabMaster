@@ -2,6 +2,9 @@
  * Vitest setup file - Mock browser APIs for jsdom environment
  */
 
+// Import jest-dom matchers
+import '@testing-library/jest-dom/vitest';
+
 // Mock HTMLMediaElement for audio tests
 class MockHTMLMediaElement {
   src = '';
