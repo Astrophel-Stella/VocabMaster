@@ -251,6 +251,52 @@ describe('App Integration - Full User Flow', () => {
     });
   });
 
+  describe('REQ-WB-003: Return to Word Bank Selection', () => {
+    it('REQ-WB-003: should return to word bank selection when clicking back button', async () => {
+      // Setup authenticated user
+      useUserStore.setState({
+        token: 'test-token',
+        user: { id: 1, username: 'test', email: 'test@example.com', created_at: '2024-01-01' },
+        isAuthenticated: true,
+      });
+
+      const mockBanks = [{ id: 1, name: '高考英语', description: '高考英语核心词汇', total_words: 1 }];
+      const mockWords = [{ id: 1, spelling: 'abandon', phonetic: '/əˈbændən/', pronunciation_url: null, meaning: 'v. 放弃', example_sentence: 'Test.' }];
+
+      vi.mocked(api.getWordBanks).mockResolvedValue(mockBanks);
+      vi.mocked(api.getWords).mockResolvedValue({ words: mockWords, total: 1 });
+      vi.mocked(api.getProgress).mockResolvedValue([]);
+      vi.mocked(api.getProgressStats).mockResolvedValue({ total_words: 1, mastered_words: 0, progress_percentage: 0 });
+
+      const user = userEvent.setup();
+      render(<App />);
+
+      // Wait for word bank selection screen
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /选择词库/i })).toBeInTheDocument();
+      });
+
+      // Click on word bank to enter learning mode
+      await user.click(screen.getByText('高考英语'));
+
+      // Wait for word card to appear
+      await waitFor(() => {
+        expect(screen.getByText('abandon')).toBeInTheDocument();
+      }, { timeout: 5000 });
+
+      // Click back button
+      await user.click(screen.getByRole('button', { name: /返回/i }));
+
+      // Should return to word bank selection screen with "选择词库" visible
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /选择词库/i })).toBeInTheDocument();
+      });
+
+      // Should show the word bank cards again
+      expect(screen.getByText('高考英语')).toBeInTheDocument();
+    });
+  });
+
   describe('REQ-UI-001: Logout Flow', () => {
     it('REQ-UI-001: should return to login page after logout', async () => {
       useUserStore.setState({
