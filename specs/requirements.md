@@ -52,7 +52,7 @@
 |---|---|---|---|---|
 | REQ-WORD-001 | 单词详情展示 | 给定单词 ID,当请求详情,则返回拼写/音标/发音 URL/释义/例句 | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WORD_001_get_word_detail_success` |
 | REQ-WORD-002 | 单词不存在处理 | 给定不存在的单词 ID,当请求详情,则返回 404 错误 | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WORD_002_word_not_found` |
-| REQ-WORD-003 | 发音播放(可选) | 给定单词有发音 URL,当用户点击播放按钮,则播放音频 | 📝 规划中(SOU-30) | ADR-0013 |
+| REQ-WORD-003 | 发音播放 | 给定单词有发音 URL,当用户点击播放按钮,则播放音频 | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WORD_003_*`, `frontend/e2e/web/pronunciation.spec.ts` |
 | REQ-WORD-004 | 单词排序 | 给定词库单词列表,则按 order_index 排序返回 | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WB_002_get_words_sorted_by_order_index` |
 
 ## 4. 学习进度(REQ-PROG)

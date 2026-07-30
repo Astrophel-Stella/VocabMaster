@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     email_provider: str = "console"  # "console" for dev/test, "aliyun" for production
     frontend_url: str = "http://localhost:5173"  # Frontend URL for email links
 
+    # Pronunciation API (optional - REQ-WORD-003)
+    youdao_app_key: Optional[str] = None
+    youdao_app_secret: Optional[str] = None
+    baidu_app_id: Optional[str] = None
+    baidu_secret_key: Optional[str] = None
+
     class Config:
         env_file = ".env"
         case_sensitive = False

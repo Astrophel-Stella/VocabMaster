@@ -126,8 +126,9 @@ export function LoginPanel() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">用户名</label>
             <input
+              id="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -139,8 +140,9 @@ export function LoginPanel() {
 
           {!isLoginMode && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
               <input
+                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -152,8 +154,9 @@ export function LoginPanel() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">密码</label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

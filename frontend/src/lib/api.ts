@@ -60,6 +60,10 @@ export async function register(username: string, email: string, password: string
 
   if (!response.ok) {
     const error = await response.json();
+    // Handle password strength validation errors (detail is an object with message and errors array)
+    if (typeof error.detail === 'object' && error.detail.message) {
+      throw new Error(error.detail.message);
+    }
     throw new Error(error.detail || 'Registration failed');
   }
 
@@ -102,6 +106,30 @@ export async function getCurrentUser(token: string): Promise<User> {
 
   if (!response.ok) {
     throw new Error('Failed to get user info');
+  }
+
+  return response.json();
+}
+
+export async function changePassword(oldPassword: string, newPassword: string, token: string): Promise<{ message: string }> {
+  const response = await apiFetch(`${API_BASE}/auth/password`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    if (response.status === 400) {
+      throw new Error(error.detail || '密码修改失败');
+    }
+    if (response.status === 422) {
+      throw new Error(error.detail?.message || '密码强度不足');
+    }
+    throw new Error(error.detail || '密码修改失败');
   }
 
   return response.json();
@@ -185,4 +213,52 @@ export async function unmarkWordMastered(wordId: number, token: string): Promise
   if (!response.ok) {
     throw new Error('Failed to unmark word');
   }
+}
+
+// Pronunciation API - REQ-WORD-003
+export type Accent = 'us' | 'uk';
+
+export interface PronunciationResponse {
+  url: string | null;
+  available: boolean;
+  accent: string;
+}
+
+/**
+ * Get pronunciation audio URL for a word.
+ * REQ-WORD-003: 发音播放功能
+ *
+ * @param wordId Word ID
+ * @param accent Accent type (us or uk)
+ * @param token Auth token
+ * @returns Pronunciation response with URL
+ */
+export async function getPronunciation(
+  wordId: number,
+  accent: Accent = 'us',
+  token: string
+): Promise<PronunciationResponse> {
+  const response = await apiFetch(`${API_BASE}/words/${wordId}/pronunciation?accent=${accent}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get pronunciation');
+  }
+
+  // Check if response is audio file
+  const contentType = response.headers?.get('content-type');
+  if (contentType?.includes('audio') && response.blob) {
+    // Return blob URL for audio
+    const blob = await response.blob();
+    return {
+      url: URL.createObjectURL(blob),
+      available: true,
+      accent,
+    };
+  }
+
+  // JSON response with URL
+  return response.json();
 }

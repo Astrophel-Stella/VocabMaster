@@ -394,3 +394,169 @@ class TestForgotPassword:
         )
         assert response2.status_code == 400
         assert "链接已失效" in response2.json()["detail"]
+
+
+# REQ-AUTH-009: Password change tests
+class TestChangePassword:
+    """REQ-AUTH-009: Password change test cases"""
+
+    def test_REQ_AUTH_009_change_password_success(self, client: TestClient):
+        """REQ-AUTH-009: 正确输入旧密码和新密码应修改成功"""
+        # Register and login
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "pwdtest",
+                "email": "pwdtest@example.com",
+                "password": "Password123"
+            }
+        )
+        login_response = client.post(
+            "/api/auth/login",
+            data={
+                "username": "pwdtest",
+                "password": "Password123"
+            }
+        )
+        token = login_response.json()["access_token"]
+
+        # Change password
+        response = client.put(
+            "/api/auth/password",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "old_password": "Password123",
+                "new_password": "NewPassword456"
+            }
+        )
+        assert response.status_code == 200
+        assert response.json()["message"] == "密码修改成功，请重新登录"
+
+        # Verify can login with new password
+        login_response = client.post(
+            "/api/auth/login",
+            data={
+                "username": "pwdtest",
+                "password": "NewPassword456"
+            }
+        )
+        assert login_response.status_code == 200
+        assert "access_token" in login_response.json()
+
+        # Verify old password no longer works
+        old_login_response = client.post(
+            "/api/auth/login",
+            data={
+                "username": "pwdtest",
+                "password": "Password123"
+            }
+        )
+        assert old_login_response.status_code == 401
+
+    def test_REQ_AUTH_009_old_password_incorrect(self, client: TestClient):
+        """REQ-AUTH-009: 旧密码错误应拒绝修改"""
+        # Register and login
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "wrongoldpwd",
+                "email": "wrongoldpwd@example.com",
+                "password": "Password123"
+            }
+        )
+        login_response = client.post(
+            "/api/auth/login",
+            data={
+                "username": "wrongoldpwd",
+                "password": "Password123"
+            }
+        )
+        token = login_response.json()["access_token"]
+
+        # Try to change with wrong old password
+        response = client.put(
+            "/api/auth/password",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "old_password": "WrongPassword",
+                "new_password": "NewPassword456"
+            }
+        )
+        assert response.status_code == 400
+        assert "旧密码错误" in response.json()["detail"]
+
+    def test_REQ_AUTH_009_new_password_weak(self, client: TestClient):
+        """REQ-AUTH-009: 新密码强度不足应拒绝修改"""
+        # Register and login
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "weaknewpwd",
+                "email": "weaknewpwd@example.com",
+                "password": "Password123"
+            }
+        )
+        login_response = client.post(
+            "/api/auth/login",
+            data={
+                "username": "weaknewpwd",
+                "password": "Password123"
+            }
+        )
+        token = login_response.json()["access_token"]
+
+        # Try to change to weak password
+        response = client.put(
+            "/api/auth/password",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "old_password": "Password123",
+                "new_password": "weak"
+            }
+        )
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert "密码强度不足" in detail["message"]
+
+    def test_REQ_AUTH_009_new_password_same_as_old(self, client: TestClient):
+        """REQ-AUTH-009: 新密码与旧密码相同应拒绝修改"""
+        # Register and login
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "samepwd",
+                "email": "samepwd@example.com",
+                "password": "Password123"
+            }
+        )
+        login_response = client.post(
+            "/api/auth/login",
+            data={
+                "username": "samepwd",
+                "password": "Password123"
+            }
+        )
+        token = login_response.json()["access_token"]
+
+        # Try to change to same password
+        response = client.put(
+            "/api/auth/password",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "old_password": "Password123",
+                "new_password": "Password123"
+            }
+        )
+        assert response.status_code == 400
+        assert "新密码不能与旧密码相同" in response.json()["detail"]
+
+    def test_REQ_AUTH_009_unauthenticated(self, client: TestClient):
+        """REQ-AUTH-009: 未登录应返回401"""
+        response = client.put(
+            "/api/auth/password",
+            json={
+                "old_password": "Password123",
+                "new_password": "NewPassword456"
+            }
+        )
+        assert response.status_code == 401

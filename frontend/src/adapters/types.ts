@@ -14,8 +14,12 @@ export interface ApiRequestInit {
 export interface ApiResponse {
   ok: boolean
   status: number
+  headers?: {
+    get(name: string): string | null
+  }
   json(): Promise<any>
   text(): Promise<string>
+  blob?(): Promise<Blob>
 }
 
 export interface PlatformAdapter {

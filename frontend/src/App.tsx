@@ -8,6 +8,7 @@ import { WordBankSelect } from './components/WordBankSelect';
 import { WordCard } from './components/WordCard';
 import { ForgotPassword } from './components/ForgotPassword';
 import { ResetPassword } from './components/ResetPassword';
+import { ChangePassword } from './components/ChangePassword';
 import { getAdapter } from './adapters';
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
   const { loadWords } = useWords();
   const { loadProgress } = useProgress();
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   const platform = getAdapter().name;
 
@@ -86,6 +88,12 @@ export default function App() {
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600">你好, {user?.username}</span>
               <button
+                onClick={() => setShowChangePassword(true)}
+                className="text-sm px-4 py-2 rounded-lg text-indigo-600 hover:bg-indigo-50 border border-indigo-200"
+              >
+                修改密码
+              </button>
+              <button
                 onClick={handleLogout}
                 className="text-sm px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 border border-gray-200"
               >
@@ -95,6 +103,23 @@ export default function App() {
           </div>
         </header>
         <WordBankSelect />
+        {/* Change Password Modal */}
+        {showChangePassword && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h2 className="text-lg font-semibold text-gray-900">修改密码</h2>
+                <button
+                  onClick={() => setShowChangePassword(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <ChangePassword onClose={() => setShowChangePassword(false)} />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -120,6 +145,12 @@ export default function App() {
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">你好, {user?.username}</span>
             <button
+              onClick={() => setShowChangePassword(true)}
+              className="text-sm px-4 py-2 rounded-lg text-indigo-600 hover:bg-indigo-50 border border-indigo-200"
+            >
+              修改密码
+            </button>
+            <button
               onClick={handleLogout}
               className="text-sm px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 border border-gray-200"
             >
@@ -131,6 +162,23 @@ export default function App() {
       <main className="py-6">
         <WordCard />
       </main>
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">修改密码</h2>
+              <button
+                onClick={() => setShowChangePassword(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            <ChangePassword onClose={() => setShowChangePassword(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

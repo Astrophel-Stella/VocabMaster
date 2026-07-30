@@ -19,3 +19,6 @@ npm-debug.log*
 
 # Rust / Tauri
 frontend/src-tauri/target
+
+# 发音音频缓存 - REQ-WORD-003
+backend/media/audio/
