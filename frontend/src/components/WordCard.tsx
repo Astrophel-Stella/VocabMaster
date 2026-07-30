@@ -1,14 +1,17 @@
 /**
  * WordCard - 单词学习卡片
+ * REQ-UI-003 + REQ-WORD-001 + REQ-WORD-003
  */
 
 import { useWords } from '../hooks/useWords';
 import { useProgress } from '../hooks/useProgress';
+import { usePronunciation } from '../hooks/usePronunciation';
 import { useUserStore } from '../stores/userStore';
 
 export function WordCard() {
   const { currentWord, currentWordIndex, totalWords, nextWord, prevWord, goToWord, isLoadingWords } = useWords();
   const { toggleMastered, isWordMastered, progressStats, isLoading: isProgressLoading } = useProgress();
+  const { status: pronunciationStatus, error: pronunciationError, play: playPronunciation, stop: stopPronunciation, currentWordId: playingWordId } = usePronunciation();
   const { isAuthenticated } = useUserStore();
 
   if (isLoadingWords) {
@@ -29,6 +32,11 @@ export function WordCard() {
 
   const isMastered = isWordMastered(currentWord.id);
 
+  // Pronunciation state
+  const isPronunciationLoading = pronunciationStatus === 'loading' && playingWordId === currentWord.id;
+  const isPronunciationPlaying = pronunciationStatus === 'playing' && playingWordId === currentWord.id;
+  const hasPronunciationError = pronunciationError && playingWordId === currentWord.id;
+
   const handleToggleMastered = async () => {
     if (!isAuthenticated) return;
     try {
@@ -36,6 +44,21 @@ export function WordCard() {
     } catch {
       // Error handled by hook
     }
+  };
+
+  const handlePronunciation = async () => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    // Stop if already playing this word
+    if (isPronunciationPlaying) {
+      stopPronunciation();
+      return;
+    }
+
+    // Play pronunciation
+    await playPronunciation(currentWord.id, 'us');
   };
 
   return (
@@ -58,11 +81,48 @@ export function WordCard() {
 
       {/* Word Card */}
       <div className="bg-white rounded-2xl shadow-lg p-8">
-        {/* Spelling */}
+        {/* Spelling with Pronunciation Button - REQ-WORD-003 */}
         <div className="text-center mb-6">
-          <h1 className="text-5xl font-bold text-gray-900 mb-2">{currentWord.spelling}</h1>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <h1 className="text-5xl font-bold text-gray-900">{currentWord.spelling}</h1>
+            {isAuthenticated && (
+              <button
+                onClick={handlePronunciation}
+                disabled={isPronunciationLoading}
+                className={`p-2 rounded-full transition-all ${
+                  isPronunciationPlaying
+                    ? 'bg-indigo-100 text-indigo-600 animate-pulse'
+                    : isPronunciationLoading
+                    ? 'bg-gray-100 text-gray-400'
+                    : hasPronunciationError
+                    ? 'bg-red-50 text-red-500'
+                    : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-600'
+                }`}
+                title={hasPronunciationError ? pronunciationError : isPronunciationPlaying ? '播放中，点击停止' : '播放发音'}
+              >
+                {isPronunciationLoading ? (
+                  <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : isPronunciationPlaying ? (
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                  </svg>
+                )}
+              </button>
+            )}
+          </div>
           {currentWord.phonetic && (
             <p className="text-xl text-gray-500">{currentWord.phonetic}</p>
+          )}
+          {/* Pronunciation error message */}
+          {hasPronunciationError && (
+            <p className="text-sm text-red-500 mt-1">{pronunciationError}</p>
           )}
         </div>
 

@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     app_name: str = "VocabMaster API"
     debug: bool = True
 
+    # Pronunciation API (optional - REQ-WORD-003)
+    youdao_app_key: Optional[str] = None
+    youdao_app_secret: Optional[str] = None
+    baidu_app_id: Optional[str] = None
+    baidu_secret_key: Optional[str] = None
+
     class Config:
         env_file = ".env"
         case_sensitive = False
