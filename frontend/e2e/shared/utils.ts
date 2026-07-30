@@ -111,6 +111,7 @@ export class WordLearningPage {
   readonly progressText: Locator;
   readonly masteredCount: Locator;
   readonly navigationDots: Locator;
+  readonly pronunciationButton: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -132,6 +133,12 @@ export class WordLearningPage {
       has: page.locator('[class*="rounded-full"]')
     }).filter({
       has: page.locator('[class*="w-2"][class*="h-2"]')
+    });
+    // Pronunciation button: rounded-full button with speaker icon (SVG) next to spelling
+    this.pronunciationButton = page.getByRole('heading', { level: 1 }).locator('..').locator('button').filter({
+      has: page.locator('svg')
+    }).filter({
+      has: page.locator('[class*="rounded-full"]')
     });
   }
 
@@ -188,6 +195,37 @@ export class WordLearningPage {
       return { mastered: parseInt(match[1]), total: parseInt(match[2]) };
     }
     return null;
+  }
+
+  async expectPronunciationButtonVisible() {
+    await expect(this.pronunciationButton).toBeVisible();
+  }
+
+  async expectPronunciationButtonHidden() {
+    await expect(this.pronunciationButton).not.toBeVisible();
+  }
+
+  async clickPronunciation() {
+    await this.pronunciationButton.click();
+  }
+
+  async isPronunciationButtonLoading() {
+    // Loading state: button has animate-spin SVG inside
+    const svg = this.pronunciationButton.locator('svg');
+    const className = await svg.getAttribute('class');
+    return className?.includes('animate-spin') || false;
+  }
+
+  async isPronunciationButtonPlaying() {
+    // Playing state: button has animate-pulse class
+    const className = await this.pronunciationButton.getAttribute('class');
+    return className?.includes('animate-pulse') || false;
+  }
+
+  async hasPronunciationError() {
+    // Error state: check for error message below the word spelling area
+    const errorText = this.page.getByText(/发音加载失败|发音服务未配置|请先登录/);
+    return await errorText.isVisible().catch(() => false);
   }
 }
 
