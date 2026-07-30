@@ -91,6 +91,7 @@ export const useWordStore = create<WordState>((set) => ({
   setLoadingWords: (loading) => set({ isLoadingWords: loading }),
 
   reset: () => set({
+    selectedWordBank: null,
     words: [],
     currentWordIndex: 0,
     totalWords: 0,
