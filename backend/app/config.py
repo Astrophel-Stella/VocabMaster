@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     app_name: str = "VocabMaster API"
     debug: bool = True
 
+    # Email (ADR-0012)
+    email_provider: str = "console"  # "console" for dev/test, "aliyun" for production
+    frontend_url: str = "http://localhost:5173"  # Frontend URL for email links
+
     class Config:
         env_file = ".env"
         case_sensitive = False

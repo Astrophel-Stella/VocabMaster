@@ -33,7 +33,7 @@
 | REQ-AUTH-004 | 登录失败处理 | 给定错误的用户名/密码,当登录,则返回 401 错误 | ✅ 已验收 | `backend/tests/test_auth.py::test_login_invalid_credentials` |
 | REQ-AUTH-005 | 获取当前用户信息 | 给定有效 token,当请求 `/api/auth/me`,则返回用户信息 | ✅ 已验收 | `backend/tests/test_auth.py::test_get_current_user` |
 | REQ-AUTH-006 | 密码强度验证 | 给定注册密码,当提交,则按 ADR-0011 规则校验(≥8/大写/小写/数字),不合规返回 422+原因 | 📝 规划中(SOU-25) | ADR-0011 |
-| REQ-AUTH-007 | 忘记密码 | 给定注册邮箱,当申请重置,则发送含 token 的重置邮件(24h 有效,用后失效),凭 token 重置密码 | 📝 规划中(SOU-26) | ADR-0012 |
+| REQ-AUTH-007 | 忘记密码 | 给定注册邮箱,当申请重置,则发送含 token 的重置邮件(24h 有效,用后失效),凭 token 重置密码 | 🔨 已实现(SOU-26) | ADR-0012 |
 | REQ-AUTH-008 | 邮箱验证 | 给定注册成功,当发送验证邮件,则用户点链接后置 email_verified=true(7天有效,用后失效) | 📝 规划中(SOU-27) | ADR-0012 |
 | REQ-AUTH-009 | 密码修改 | 给定已登录用户,当提交旧密码+新密码,则校验旧密码后更新(复用 ADR-0011 强度校验),前端清 token 重登 | 📝 规划中(SOU-28) | ADR-0011 |
 
