@@ -60,6 +60,10 @@ export async function register(username: string, email: string, password: string
 
   if (!response.ok) {
     const error = await response.json();
+    // Handle password strength validation errors (detail is an object with message and errors array)
+    if (typeof error.detail === 'object' && error.detail.message) {
+      throw new Error(error.detail.message);
+    }
     throw new Error(error.detail || 'Registration failed');
   }
 
