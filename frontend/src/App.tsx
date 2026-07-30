@@ -9,6 +9,8 @@ import { WordCard } from './components/WordCard';
 import { ForgotPassword } from './components/ForgotPassword';
 import { ResetPassword } from './components/ResetPassword';
 import { ChangePassword } from './components/ChangePassword';
+import { ForgotPassword } from './components/ForgotPassword';
+import { ResetPassword } from './components/ResetPassword';
 import { getAdapter } from './adapters';
 
 export default function App() {
@@ -18,6 +20,7 @@ export default function App() {
   const { loadProgress } = useProgress();
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
 
   const platform = getAdapter().name;
 

@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     baidu_app_id: Optional[str] = None
     baidu_secret_key: Optional[str] = None
 
+    # Email (ADR-0012)
+    email_provider: str = "console"  # "console" for dev/test, "aliyun" for production
+    frontend_url: str = "http://localhost:5173"  # Frontend URL for email links
+
     class Config:
         env_file = ".env"
         case_sensitive = False
