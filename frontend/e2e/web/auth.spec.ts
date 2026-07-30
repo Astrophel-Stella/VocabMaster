@@ -159,12 +159,184 @@ test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
 
     await loginPage.usernameInput.fill(uniqueUsername);
     await loginPage.emailInput.fill(`${uniqueUsername}@test.com`);
-    await loginPage.passwordInput.fill('123456');
+    await loginPage.passwordInput.fill('Password123');
 
     await loginPage.submitButton.click();
 
     // Should auto-login and redirect to word bank selection
     await expect(page.getByRole('heading', { name: '选择词库' })).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(`你好, ${uniqueUsername}`)).toBeVisible();
+  });
+
+  // REQ-AUTH-006: Password Strength Validation E2E Tests
+  test.describe('REQ-AUTH-006: Password Strength Validation', () => {
+
+    test('REQ-AUTH-006: Password strength indicator not shown in login mode', async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      await loginPage.goto();
+
+      // In login mode, password strength indicator should not appear
+      await loginPage.passwordInput.fill('Password123');
+
+      // Strength indicator should not be visible in login mode
+      await expect(page.getByText('密码强度')).not.toBeVisible();
+    });
+
+    test('REQ-AUTH-006: Weak password shows "弱" strength', async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      await loginPage.goto();
+      await loginPage.switchToRegister();
+
+      // Type a weak password (missing requirements)
+      await loginPage.passwordInput.fill('abc');
+
+      // Should show "密码强度：弱"
+      await expect(page.getByText('密码强度：弱')).toBeVisible();
+
+      // Requirements should show unchecked (gray text, not green)
+      await expect(page.getByText('至少8个字符').first()).not.toHaveClass(/text-green-600/);
+      await expect(page.getByText('至少1个大写字母').first()).not.toHaveClass(/text-green-600/);
+    });
+
+    test('REQ-AUTH-006: Strong password "Abcd1234" shows "强"', async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      await loginPage.goto();
+      await loginPage.switchToRegister();
+
+      // Type a strong password that meets all basic requirements
+      await loginPage.passwordInput.fill('Abcd1234');
+
+      // Should show "密码强度：强"
+      await expect(page.getByText('密码强度：强')).toBeVisible();
+
+      // All requirements should be checked (green)
+      const lengthCheck = page.getByText('至少8个字符').first();
+      const upperCheck = page.getByText('至少1个大写字母').first();
+      const lowerCheck = page.getByText('至少1个小写字母').first();
+      const digitCheck = page.getByText('至少1个数字').first();
+
+      await expect(lengthCheck).toHaveClass(/text-green-600/);
+      await expect(upperCheck).toHaveClass(/text-green-600/);
+      await expect(lowerCheck).toHaveClass(/text-green-600/);
+      await expect(digitCheck).toHaveClass(/text-green-600/);
+    });
+
+    test('REQ-AUTH-006: Very strong password "Abcdefgh1234!@#" shows "非常强"', async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      await loginPage.goto();
+      await loginPage.switchToRegister();
+
+      // Type a very strong password (12+ chars with special characters)
+      await loginPage.passwordInput.fill('Abcdefgh1234!@#');
+
+      // Should show "密码强度：非常强"
+      await expect(page.getByText('密码强度：非常强')).toBeVisible();
+    });
+
+    test('REQ-AUTH-006: Missing uppercase shows unchecked requirement', async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      await loginPage.goto();
+      await loginPage.switchToRegister();
+
+      // Password without uppercase letter
+      await loginPage.passwordInput.fill('abcdefgh123');
+
+      // Uppercase requirement should be unchecked
+      const upperCheck = page.getByText('至少1个大写字母').first();
+      await expect(upperCheck).not.toHaveClass(/text-green-600/);
+
+      // Other requirements that are met should be green
+      const lengthCheck = page.getByText('至少8个字符').first();
+      const digitCheck = page.getByText('至少1个数字').first();
+      await expect(lengthCheck).toHaveClass(/text-green-600/);
+      await expect(digitCheck).toHaveClass(/text-green-600/);
+    });
+
+    test('REQ-AUTH-006: Missing lowercase shows unchecked requirement', async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      await loginPage.goto();
+      await loginPage.switchToRegister();
+
+      // Password without lowercase letter
+      await loginPage.passwordInput.fill('ABCDEFGH123');
+
+      // Lowercase requirement should be unchecked
+      const lowerCheck = page.getByText('至少1个小写字母').first();
+      await expect(lowerCheck).not.toHaveClass(/text-green-600/);
+    });
+
+    test('REQ-AUTH-006: Missing digit shows unchecked requirement', async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      await loginPage.goto();
+      await loginPage.switchToRegister();
+
+      // Password without digit
+      await loginPage.passwordInput.fill('Abcdefgh');
+
+      // Digit requirement should be unchecked
+      const digitCheck = page.getByText('至少1个数字').first();
+      await expect(digitCheck).not.toHaveClass(/text-green-600/);
+    });
+
+    test('REQ-AUTH-006: Registration with weak password is rejected', async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      await loginPage.goto();
+      await loginPage.switchToRegister();
+
+      const uniqueUsername = `weakuser_${Date.now()}`;
+
+      // Try to register with weak password (doesn't meet requirements)
+      await loginPage.usernameInput.fill(uniqueUsername);
+      await loginPage.emailInput.fill(`${uniqueUsername}@test.com`);
+      await loginPage.passwordInput.fill('weak');
+
+      await loginPage.submitButton.click();
+
+      // Should show error message about password strength
+      await loginPage.expectErrorVisible();
+
+      const errorText = await loginPage.errorMessage.textContent();
+      // Backend returns error with password strength details
+      expect(errorText).toMatch(/密码|password/i);
+    });
+
+    test('REQ-AUTH-006: Registration with strong password succeeds', async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      await loginPage.goto();
+      await loginPage.switchToRegister();
+
+      const uniqueUsername = `stronguser_${Date.now()}`;
+
+      // Register with strong password
+      await loginPage.usernameInput.fill(uniqueUsername);
+      await loginPage.emailInput.fill(`${uniqueUsername}@test.com`);
+      await loginPage.passwordInput.fill('Password123');
+
+      await loginPage.submitButton.click();
+
+      // Should succeed and redirect to word bank selection
+      await expect(page.getByRole('heading', { name: '选择词库' })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(`你好, ${uniqueUsername}`)).toBeVisible();
+    });
+
+    test('REQ-AUTH-006: Strength indicator updates in real-time', async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      await loginPage.goto();
+      await loginPage.switchToRegister();
+
+      // Type weak password first
+      await loginPage.passwordInput.fill('abc');
+      await expect(page.getByText('密码强度：弱')).toBeVisible();
+
+      // Clear and type strong password
+      await loginPage.passwordInput.fill('');
+      await loginPage.passwordInput.fill('Abcd1234');
+      await expect(page.getByText('密码强度：强')).toBeVisible();
+
+      // Clear and type very strong password
+      await loginPage.passwordInput.fill('');
+      await loginPage.passwordInput.fill('Abcdefgh1234!@#');
+      await expect(page.getByText('密码强度：非常强')).toBeVisible();
+    });
   });
 });
