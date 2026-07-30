@@ -40,6 +40,7 @@
 | REQ-WB-001 | 获取词库列表 | 给定已登录用户,当请求词库列表,则返回所有可用词库(高考英语、考研英语、生活英语等) | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WB_001_*` |
 | REQ-WB-002 | 获取词库单词 | 给定词库 ID 和分页参数,当请求单词列表,则返回该词库的单词(含拼写/音标/释义/例句) | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WB_002_*` |
 | REQ-WB-003 | 词库不存在处理 | 给定不存在的词库 ID,当请求单词列表,则返回 404 错误 | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WB_003_word_bank_not_found` |
+| REQ-WB-004 | 词库数据完整性 | 给定已导入词库数据,则每个词库词汇数量达到验收标准(四级≥2000,六级≥2500,考研≥5500,托福≥3500,雅思≥3000,GRE≥10000,商务英语≥1000,生活口语≥500) | ✅ 已验收 | `backend/tests/test_words.py::test_REQ_WB_004_*` |
 
 ## 3. 单词学习(REQ-WORD)
 
