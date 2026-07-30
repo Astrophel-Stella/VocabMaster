@@ -273,7 +273,7 @@ docker-compose down -v
 ① 从 origin/master 切特性分支 → 改代码
 ② 全部测试通过：单测(Vitest/pytest) + 集成 + E2E(Playwright，模拟浏览器操作)
 ③ 架构师审核 PR（对照验收标准 + ADR + 接口定义）
-④ 合并 master（人工 owner 操作；架构师提请）
+④ 合并 master（架构师执行 `gh pr merge`）
 ⑤ 等待人工(QA/陈豪)确认部署
 ⑥ 基于 master 构建 → 部署 → 回归测试
 ```
@@ -283,7 +283,7 @@ docker-compose down -v
 1. **master 起步**：修改从 `origin/master` 切分支，PR 目标恒为 `master`，不在特性分支上叠特性。
 2. **测试全过含 E2E**：面向用户的功能必须同时有代码级单测**和**浏览器级 E2E（Playwright）。E2E **不可跳过，不可用接口测试或组件单测替代**。无 E2E 覆盖的需求不得升到「✅ 已验收」，不得进入部署。
 3. **测试与文档跟随工程**：测试用例、`specs/requirements.md` 锚点、ADR（`docs/decisions/`）随代码同 PR 提交、同 PR 合并 master；不单次使用、不留特性分支。回归直接拉 master 复用全部历史用例。
-4. **合并前置部署**：部署必须在 PR 合并 master **之后**、基于 master 构建；**特性分支不直接上线**。架构师审核通过后 @mention 人工 owner 请求合并；人工确认后再部署。
+4. **合并前置部署**：部署必须在 PR 合并 master **之后**、基于 master 构建；**特性分支不直接上线**。架构师审核通过后**由架构师执行 `gh pr merge` 合并 master**（合并是架构师职责，非人工闸口）；人工(QA/陈豪)确认后再部署。
 
 > Bug 验证路由（既有规则）：Bug 由谁发现，修复后就由谁验证，不交叉指派——代码级→单元&集成测试工程师；功能级→UI&功能自动化测试工程师。
 
