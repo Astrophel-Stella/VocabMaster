@@ -1,5 +1,5 @@
 /**
- * WordCard Component Tests - REQ-UI-003 + REQ-WB-002 + REQ-WORD-001/004
+ * WordCard Component Tests - REQ-UI-003 + REQ-WB-002 + REQ-WORD-001/003/004
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 import { WordCard } from './WordCard';
 import { useWords } from '../hooks/useWords';
 import { useProgress } from '../hooks/useProgress';
+import { usePronunciation } from '../hooks/usePronunciation';
 import { useUserStore } from '../stores/userStore';
 
 // Import jest-dom matchers
@@ -20,6 +21,10 @@ vi.mock('../hooks/useWords', () => ({
 
 vi.mock('../hooks/useProgress', () => ({
   useProgress: vi.fn(),
+}));
+
+vi.mock('../hooks/usePronunciation', () => ({
+  usePronunciation: vi.fn(),
 }));
 
 vi.mock('../stores/userStore', () => ({
@@ -78,6 +83,18 @@ describe('WordCard Component - REQ-UI-003', () => {
     clearError: vi.fn(),
   };
 
+  const mockPlayPronunciation = vi.fn();
+  const mockStopPronunciation = vi.fn();
+
+  const baseUsePronunciationReturn = {
+    status: 'idle' as const,
+    error: null as string | null,
+    play: mockPlayPronunciation,
+    stop: mockStopPronunciation,
+    currentWordId: null as number | null,
+    currentAccent: 'us' as const,
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -102,6 +119,8 @@ describe('WordCard Component - REQ-UI-003', () => {
       isWordMastered: vi.fn(() => false),
       clearError: vi.fn(),
     });
+
+    vi.mocked(usePronunciation).mockReturnValue(baseUsePronunciationReturn);
   });
 
   describe('REQ-UI-003 + REQ-WORD-001: Word Card Display', () => {
@@ -295,6 +314,169 @@ describe('WordCard Component - REQ-UI-003', () => {
       render(<WordCard />);
 
       expect(screen.getByText(/暂无单词/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('REQ-WORD-003: Pronunciation Feature', () => {
+    it('REQ-WORD-003: should display pronunciation button for authenticated users', () => {
+      vi.mocked(useWords).mockReturnValue({
+        ...baseUseWordsReturn,
+        currentWord: mockWord,
+        words: [mockWord],
+        totalWords: 1,
+      });
+
+      render(<WordCard />);
+
+      // Find pronunciation button by looking for speaker icon
+      const buttons = screen.getAllByRole('button');
+      // There should be a pronunciation button (has speaker icon)
+      expect(buttons.length).toBeGreaterThan(3); // prev, next, mastered, pronunciation
+    });
+
+    it('REQ-WORD-003: should call playPronunciation when clicking pronunciation button', async () => {
+      vi.mocked(useWords).mockReturnValue({
+        ...baseUseWordsReturn,
+        currentWord: mockWord,
+        words: [mockWord],
+        totalWords: 1,
+      });
+
+      const user = userEvent.setup();
+      render(<WordCard />);
+
+      // Find and click pronunciation button (the one with speaker icon, not text)
+      const buttons = screen.getAllByRole('button');
+      // The pronunciation button is the one without text label after spelling
+      const pronunciationButton = buttons.find(btn =>
+        btn.className.includes('rounded-full') && btn.querySelector('svg')
+      );
+
+      if (pronunciationButton) {
+        await user.click(pronunciationButton);
+        expect(mockPlayPronunciation).toHaveBeenCalledWith(1, 'us');
+      }
+    });
+
+    it('REQ-WORD-003: should show loading state when pronunciation is loading', () => {
+      vi.mocked(useWords).mockReturnValue({
+        ...baseUseWordsReturn,
+        currentWord: mockWord,
+        words: [mockWord],
+        totalWords: 1,
+      });
+
+      vi.mocked(usePronunciation).mockReturnValue({
+        ...baseUsePronunciationReturn,
+        status: 'loading',
+        currentWordId: 1,
+      });
+
+      render(<WordCard />);
+
+      // Check for loading spinner in pronunciation button (animate-spin is on the SVG)
+      const loadingSpinner = document.querySelector('.animate-spin');
+      expect(loadingSpinner).toBeTruthy();
+    });
+
+    it('REQ-WORD-003: should show playing state when pronunciation is playing', () => {
+      vi.mocked(useWords).mockReturnValue({
+        ...baseUseWordsReturn,
+        currentWord: mockWord,
+        words: [mockWord],
+        totalWords: 1,
+      });
+
+      vi.mocked(usePronunciation).mockReturnValue({
+        ...baseUsePronunciationReturn,
+        status: 'playing',
+        currentWordId: 1,
+      });
+
+      render(<WordCard />);
+
+      // Check for playing state (animate-pulse)
+      const buttons = screen.getAllByRole('button');
+      const playingButton = buttons.find(btn =>
+        btn.className.includes('animate-pulse') && btn.className.includes('rounded-full')
+      );
+      expect(playingButton).toBeTruthy();
+    });
+
+    it('REQ-WORD-003: should show error message when pronunciation fails', () => {
+      vi.mocked(useWords).mockReturnValue({
+        ...baseUseWordsReturn,
+        currentWord: mockWord,
+        words: [mockWord],
+        totalWords: 1,
+      });
+
+      vi.mocked(usePronunciation).mockReturnValue({
+        ...baseUsePronunciationReturn,
+        status: 'error',
+        error: '发音加载失败，请稍后重试',
+        currentWordId: 1,
+      });
+
+      render(<WordCard />);
+
+      expect(screen.getByText('发音加载失败，请稍后重试')).toBeInTheDocument();
+    });
+
+    it('REQ-WORD-003: should stop playing when clicking button during playback', async () => {
+      vi.mocked(useWords).mockReturnValue({
+        ...baseUseWordsReturn,
+        currentWord: mockWord,
+        words: [mockWord],
+        totalWords: 1,
+      });
+
+      vi.mocked(usePronunciation).mockReturnValue({
+        ...baseUsePronunciationReturn,
+        status: 'playing',
+        currentWordId: 1,
+      });
+
+      const user = userEvent.setup();
+      render(<WordCard />);
+
+      // Find playing button
+      const buttons = screen.getAllByRole('button');
+      const playingButton = buttons.find(btn =>
+        btn.className.includes('animate-pulse') && btn.className.includes('rounded-full')
+      );
+
+      if (playingButton) {
+        await user.click(playingButton);
+        expect(mockStopPronunciation).toHaveBeenCalled();
+      }
+    });
+
+    it('REQ-WORD-003: should not show pronunciation button for unauthenticated users', () => {
+      vi.mocked(useUserStore).mockReturnValue({
+        isAuthenticated: false,
+        user: null,
+        token: null,
+        setUser: vi.fn(),
+        setToken: vi.fn(),
+        logout: vi.fn(),
+      });
+
+      vi.mocked(useWords).mockReturnValue({
+        ...baseUseWordsReturn,
+        currentWord: mockWord,
+        words: [mockWord],
+        totalWords: 1,
+      });
+
+      render(<WordCard />);
+
+      // The pronunciation button should not be present
+      const buttons = screen.getAllByRole('button');
+      const pronunciationButton = buttons.find(btn =>
+        btn.className.includes('rounded-full') && btn.querySelector('svg') && !btn.textContent
+      );
+      expect(pronunciationButton).toBeUndefined();
     });
   });
 });

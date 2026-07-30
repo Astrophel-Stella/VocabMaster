@@ -2,6 +2,8 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from app.config import settings
 from app.database import init_db
@@ -27,6 +29,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files for audio cache
+media_dir = Path(__file__).parent.parent / "media"
+media_dir.mkdir(exist_ok=True)
+(media_dir / "audio" / "us").mkdir(parents=True, exist_ok=True)
+(media_dir / "audio" / "uk").mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(media_dir)), name="media")
 
 # Include routers
 app.include_router(auth.router)

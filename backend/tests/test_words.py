@@ -166,3 +166,66 @@ class TestWordDetail:
         response = client.get("/api/words/99999")
         assert response.status_code == 404
         assert "Word not found" in response.json()["detail"]
+
+
+class TestPronunciation:
+    """Tests for REQ-WORD-003: Pronunciation feature"""
+
+    def test_REQ_WORD_003_pronunciation_not_configured(self, client: TestClient, db_session: Session, auth_headers: dict):
+        """REQ-WORD-003: Given pronunciation API not configured, when requesting pronunciation, then return 404 with friendly message"""
+        wb = WordBank(name="Pronunciation Test", description="Test", total_words=1)
+        db_session.add(wb)
+        db_session.commit()
+        db_session.refresh(wb)
+
+        word = Word(word_bank_id=wb.id, spelling="hello", phonetic="/həˈloʊ/",
+                    meaning="int. 你好", example_sentence="Hello, world!", order_index=1)
+        db_session.add(word)
+        db_session.commit()
+        db_session.refresh(word)
+        word_id = word.id
+
+        # Request pronunciation without API configured (default env)
+        response = client.get(f"/api/words/{word_id}/pronunciation?accent=us", headers=auth_headers)
+        assert response.status_code == 404
+        assert "发音服务未配置" in response.json()["detail"]
+
+    def test_REQ_WORD_003_pronunciation_invalid_accent(self, client: TestClient, db_session: Session, auth_headers: dict):
+        """REQ-WORD-003: Given invalid accent parameter, when requesting pronunciation, then return 422"""
+        wb = WordBank(name="Accent Test", description="Test", total_words=1)
+        db_session.add(wb)
+        db_session.commit()
+        db_session.refresh(wb)
+
+        word = Word(word_bank_id=wb.id, spelling="test", phonetic="/test/",
+                    meaning="n. 测试", order_index=1)
+        db_session.add(word)
+        db_session.commit()
+        db_session.refresh(word)
+        word_id = word.id
+
+        response = client.get(f"/api/words/{word_id}/pronunciation?accent=invalid", headers=auth_headers)
+        assert response.status_code == 422
+
+    def test_REQ_WORD_003_pronunciation_word_not_found(self, client: TestClient, auth_headers: dict):
+        """REQ-WORD-003: Given non-existent word ID, when requesting pronunciation, then return 404"""
+        response = client.get("/api/words/99999/pronunciation?accent=us", headers=auth_headers)
+        assert response.status_code == 404
+        assert "Word not found" in response.json()["detail"]
+
+    def test_REQ_WORD_003_pronunciation_requires_auth(self, client: TestClient, db_session: Session):
+        """REQ-WORD-003: Given no auth token, when requesting pronunciation, then return 401"""
+        wb = WordBank(name="Auth Test", description="Test", total_words=1)
+        db_session.add(wb)
+        db_session.commit()
+        db_session.refresh(wb)
+
+        word = Word(word_bank_id=wb.id, spelling="test", phonetic="/test/",
+                    meaning="n. 测试", order_index=1)
+        db_session.add(word)
+        db_session.commit()
+        db_session.refresh(word)
+        word_id = word.id
+
+        response = client.get(f"/api/words/{word_id}/pronunciation?accent=us")
+        assert response.status_code == 401
