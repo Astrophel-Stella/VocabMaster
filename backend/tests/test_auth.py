@@ -59,7 +59,7 @@ class TestPasswordStrengthValidation:
                 "password": "Abc123"
             }
         )
-        assert response.status_code == 400
+        assert response.status_code == 422
         detail = response.json()["detail"]
         assert "密码长度至少8个字符" in detail["errors"]
 
@@ -73,7 +73,7 @@ class TestPasswordStrengthValidation:
                 "password": "abcdefgh123"
             }
         )
-        assert response.status_code == 400
+        assert response.status_code == 422
         detail = response.json()["detail"]
         assert "密码需包含至少1个大写字母" in detail["errors"]
 
@@ -87,7 +87,7 @@ class TestPasswordStrengthValidation:
                 "password": "ABCDEFGH123"
             }
         )
-        assert response.status_code == 400
+        assert response.status_code == 422
         detail = response.json()["detail"]
         assert "密码需包含至少1个小写字母" in detail["errors"]
 
@@ -101,7 +101,7 @@ class TestPasswordStrengthValidation:
                 "password": "Abcdefgh"
             }
         )
-        assert response.status_code == 400
+        assert response.status_code == 422
         detail = response.json()["detail"]
         assert "密码需包含至少1个数字" in detail["errors"]
 
@@ -115,7 +115,7 @@ class TestPasswordStrengthValidation:
                 "password": "abc"
             }
         )
-        assert response.status_code == 400
+        assert response.status_code == 422
         detail = response.json()["detail"]
         errors = detail["errors"]
         assert "密码长度至少8个字符" in errors

@@ -8,73 +8,16 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-import re
 
 from app.database import get_db
 from app.config import settings
 from app.models.user import User
+from app.services.password_service import validate_password_strength
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
-
-
-# Password strength validation
-class PasswordValidationResult(BaseModel):
-    """Result of password strength validation"""
-    is_valid: bool
-    errors: list[str] = []
-    strength: str  # "weak", "medium", "strong", "very_strong"
-
-
-def validate_password_strength(password: str) -> PasswordValidationResult:
-    """
-    Validate password strength according to REQ-AUTH-006.
-
-    Requirements:
-    - At least 8 characters
-    - At least 1 uppercase letter
-    - At least 1 lowercase letter
-    - At least 1 digit
-
-    Returns validation result with errors and strength level.
-    """
-    errors = []
-
-    # Check length
-    if len(password) < 8:
-        errors.append("密码长度至少8个字符")
-
-    # Check uppercase
-    if not re.search(r'[A-Z]', password):
-        errors.append("密码需包含至少1个大写字母")
-
-    # Check lowercase
-    if not re.search(r'[a-z]', password):
-        errors.append("密码需包含至少1个小写字母")
-
-    # Check digit
-    if not re.search(r'\d', password):
-        errors.append("密码需包含至少1个数字")
-
-    # Determine strength
-    if errors:
-        strength = "weak"
-    elif len(password) >= 12 and re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-        strength = "very_strong"
-    elif len(password) >= 8:
-        strength = "strong"
-    else:
-        strength = "medium"
-
-    is_valid = len(errors) == 0
-
-    return PasswordValidationResult(
-        is_valid=is_valid,
-        errors=errors,
-        strength=strength
-    )
 
 
 # Pydantic schemas
@@ -152,7 +95,7 @@ def register(user_create: UserCreate, db: Session = Depends(get_db)):
     validation = validate_password_strength(user_create.password)
     if not validation.is_valid:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
                 "message": "密码强度不足",
                 "errors": validation.errors
