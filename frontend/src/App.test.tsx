@@ -1,5 +1,5 @@
 /**
- * App Integration Tests - REQ-WB-002 学习卡片展示
+ * App Integration Tests - REQ-WB-002 学习卡片展示 + REQ-UI-001~004 全链路测试
  *
  * Tests the full flow: login -> select word bank -> word card appears (not infinite spinner)
  * This test is specifically designed to catch the useEffect infinite loop bug.
@@ -22,6 +22,11 @@ vi.mock('./lib/api', () => ({
   getWords: vi.fn(),
   getProgress: vi.fn(),
   getProgressStats: vi.fn(),
+  login: vi.fn(),
+  register: vi.fn(),
+  getCurrentUser: vi.fn(),
+  markWordMastered: vi.fn(),
+  unmarkWordMastered: vi.fn(),
 }));
 
 // Mock the adapters module
@@ -123,5 +128,177 @@ describe('App Integration - REQ-WB-002: Word Card Display', () => {
     // With infinite loop bug, getWords would be called many times
     // After fix, it should be called once
     expect(api.getWords).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('App Integration - Full User Flow', () => {
+  beforeEach(() => {
+    // Reset stores before each test
+    useUserStore.setState({
+      token: null,
+      user: null,
+      isAuthenticated: false,
+    });
+
+    useWordStore.setState({
+      wordBanks: [],
+      selectedWordBank: null,
+      words: [],
+      currentWordIndex: 0,
+      totalWords: 0,
+      isLoadingBanks: false,
+      isLoadingWords: false,
+      progress: [],
+      progressStats: null,
+    });
+
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  describe('REQ-UI-001: Login Flow', () => {
+    it('REQ-UI-001: should show login panel when not authenticated', () => {
+      render(<App />);
+
+      expect(screen.getByRole('heading', { name: /vocabmaster/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /登录/i })).toBeInTheDocument();
+    });
+
+    it('REQ-UI-001 + REQ-AUTH-003: should login and show word bank selection', async () => {
+      const mockToken = { access_token: 'test-token', token_type: 'bearer' };
+      const mockUser = { id: 1, username: 'test', email: 'test@example.com', created_at: '2024-01-01' };
+      const mockBanks = [{ id: 1, name: '高考英语', description: '高考英语核心词汇', total_words: 3 }];
+
+      vi.mocked(api.login).mockResolvedValueOnce(mockToken);
+      vi.mocked(api.getCurrentUser).mockResolvedValueOnce(mockUser);
+      vi.mocked(api.getWordBanks).mockResolvedValueOnce(mockBanks);
+
+      const user = userEvent.setup();
+      render(<App />);
+
+      const usernameInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+      const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+
+      await user.type(usernameInput, 'test');
+      await user.type(passwordInput, '123456');
+      await user.click(screen.getByRole('button', { name: /登录/i }));
+
+      // Should show word bank selection after successful login
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /选择词库/i })).toBeInTheDocument();
+      }, { timeout: 5000 });
+    });
+  });
+
+  describe('REQ-UI-002: Word Bank Selection Flow', () => {
+    it('REQ-UI-002: should show word bank list after login', async () => {
+      // Setup authenticated user
+      useUserStore.setState({
+        token: 'test-token',
+        user: { id: 1, username: 'test', email: 'test@example.com', created_at: '2024-01-01' },
+        isAuthenticated: true,
+      });
+
+      const mockBanks = [
+        { id: 1, name: '高考英语', description: '高考英语核心词汇', total_words: 3500 },
+      ];
+
+      vi.mocked(api.getWordBanks).mockResolvedValueOnce(mockBanks);
+
+      render(<App />);
+
+      // Wait for the word bank selection screen
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /选择词库/i })).toBeInTheDocument();
+      }, { timeout: 5000 });
+
+      // Should show at least one word bank
+      expect(screen.getByText('高考英语')).toBeInTheDocument();
+    });
+  });
+
+  describe('REQ-UI-003: Word Learning Flow', () => {
+    it('REQ-UI-003: should show word card after selecting word bank', async () => {
+      useUserStore.setState({
+        token: 'test-token',
+        user: { id: 1, username: 'test', email: 'test@example.com', created_at: '2024-01-01' },
+        isAuthenticated: true,
+      });
+
+      const mockBanks = [{ id: 1, name: '高考英语', description: '高考英语核心词汇', total_words: 1 }];
+      const mockWords = [{ id: 1, spelling: 'abandon', phonetic: '/əˈbændən/', pronunciation_url: null, meaning: 'v. 放弃', example_sentence: 'Test.' }];
+
+      vi.mocked(api.getWordBanks).mockResolvedValueOnce(mockBanks);
+      vi.mocked(api.getWords).mockResolvedValueOnce({ words: mockWords, total: 1 });
+      vi.mocked(api.getProgress).mockResolvedValueOnce([]);
+      vi.mocked(api.getProgressStats).mockResolvedValueOnce({ total_words: 1, mastered_words: 0, progress_percentage: 0 });
+
+      const user = userEvent.setup();
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /选择词库/i })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('高考英语'));
+
+      await waitFor(() => {
+        expect(screen.getByText('abandon')).toBeInTheDocument();
+      }, { timeout: 5000 });
+    });
+  });
+
+  describe('REQ-UI-001: Logout Flow', () => {
+    it('REQ-UI-001: should return to login page after logout', async () => {
+      useUserStore.setState({
+        token: 'test-token',
+        user: { id: 1, username: 'test', email: 'test@example.com', created_at: '2024-01-01' },
+        isAuthenticated: true,
+      });
+
+      const mockBanks = [{ id: 1, name: '高考英语', description: '高考英语核心词汇', total_words: 1 }];
+      vi.mocked(api.getWordBanks).mockResolvedValueOnce(mockBanks);
+
+      const user = userEvent.setup();
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/你好.*test/i)).toBeInTheDocument();
+      });
+
+      // Click logout button
+      await user.click(screen.getByRole('button', { name: /退出/i }));
+
+      // Should show login panel again
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /vocabmaster/i })).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('REQ-AUTH-005: Session Persistence', () => {
+    it('REQ-AUTH-005: should maintain login state after refresh (Zustand persist)', async () => {
+      // Simulate user already logged in with persisted state
+      useUserStore.setState({
+        token: 'persisted-token',
+        user: { id: 1, username: 'test', email: 'test@example.com', created_at: '2024-01-01' },
+        isAuthenticated: true,
+      });
+
+      const mockBanks = [{ id: 1, name: '高考英语', description: '高考英语核心词汇', total_words: 1 }];
+      vi.mocked(api.getWordBanks).mockResolvedValueOnce(mockBanks);
+
+      render(<App />);
+
+      // Should NOT show login panel (already authenticated)
+      await waitFor(() => {
+        expect(screen.getByText(/你好.*test/i)).toBeInTheDocument();
+      });
+
+      expect(screen.queryByRole('button', { name: /登录/i })).not.toBeInTheDocument();
+    });
   });
 });
