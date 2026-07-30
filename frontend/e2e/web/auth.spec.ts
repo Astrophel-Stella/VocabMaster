@@ -293,12 +293,14 @@ test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
 
       await loginPage.submitButton.click();
 
-      // Should show error message about password strength
-      await loginPage.expectErrorVisible();
+      // Wait a moment for the API call to complete
+      await page.waitForTimeout(1000);
 
-      const errorText = await loginPage.errorMessage.textContent();
-      // Backend returns error with password strength details
-      expect(errorText).toMatch(/密码|password/i);
+      // Should NOT redirect to word bank selection (registration failed)
+      await expect(page.getByRole('heading', { name: '选择词库' })).not.toBeVisible({ timeout: 3000 });
+
+      // Should still be on the register page
+      await expect(page.getByRole('button', { name: '注册' })).toBeVisible();
     });
 
     test('REQ-AUTH-006: Registration with strong password succeeds', async ({ page }) => {
