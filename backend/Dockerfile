@@ -7,8 +7,13 @@ FROM python:3.10-slim as builder
 WORKDIR /app
 
 # 安装依赖
+# 用腾讯云内网 PyPI 镜像：容器内直连官方 pypi.org 在国内生产机上会超时
+# （宿主机 ~/.pip/pip.conf 的镜像配置不会带进容器），故在此显式指定。
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --user \
+    -i http://mirrors.tencentyun.com/pypi/simple \
+    --trusted-host mirrors.tencentyun.com \
+    -r requirements.txt
 
 # 生产阶段
 FROM python:3.10-slim
