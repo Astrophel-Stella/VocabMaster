@@ -23,7 +23,8 @@ export class LoginPage {
     this.usernameInput = page.getByLabel('用户名');
     this.passwordInput = page.getByLabel('密码');
     this.emailInput = page.getByLabel('邮箱');
-    this.submitButton = page.getByRole('button', { name: /登录|注册/ });
+    // Submit button: the form submit button (has type="submit")
+    this.submitButton = page.locator('button[type="submit"]');
     this.toggleModeButton = page.getByRole('button', { name: /没有账号|已有账号/ });
     // Error message: find the error container (has red background) and get the text inside
     this.errorMessage = page.locator('[class*="bg-red-50"] p').first();
