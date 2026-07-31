@@ -395,6 +395,44 @@ class TestForgotPassword:
         assert response2.status_code == 400
         assert "链接已失效" in response2.json()["detail"]
 
+    def test_REQ_AUTH_007_token_expired(self, client: TestClient, db_session):
+        """REQ-AUTH-007: Token 过期（超过24小时）应显示错误"""
+        from app.models.user import User
+        from datetime import datetime, timedelta
+
+        # Register user and request reset
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "expireduser",
+                "email": "expired@example.com",
+                "password": "OldPassword123"
+            }
+        )
+        client.post(
+            "/api/auth/forgot-password",
+            json={"email": "expired@example.com"}
+        )
+
+        # Get the token and manually expire it
+        user = db_session.query(User).filter(User.email == "expired@example.com").first()
+        token = user.reset_token
+
+        # Set token expiration to the past (25 hours ago)
+        user.reset_token_expires = datetime.utcnow() - timedelta(hours=25)
+        db_session.commit()
+
+        # Try to reset with expired token
+        response = client.post(
+            "/api/auth/reset-password",
+            json={
+                "token": token,
+                "new_password": "NewPassword456"
+            }
+        )
+        assert response.status_code == 400
+        assert "链接已过期，请重新申请重置" in response.json()["detail"]
+
 
 # REQ-AUTH-009: Password change tests
 class TestChangePassword:
