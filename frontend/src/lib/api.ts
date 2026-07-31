@@ -89,9 +89,12 @@ export async function login(username: string, password: string): Promise<Token> 
 
   if (!response.ok) {
     const error = await response.json();
-    // Distinguish 401 (auth failure) from other errors
+    // Distinguish 401 (auth failure) from other errors.
+    // The backend returns an English detail ("Incorrect username or password")
+    // for 401; the UI is Chinese, so always surface the localized message here
+    // rather than passing the backend string through.
     if (response.status === 401) {
-      throw new Error(error.detail || '用户名或密码错误');
+      throw new Error('用户名或密码错误');
     }
     throw new Error(error.detail || '登录失败');
   }

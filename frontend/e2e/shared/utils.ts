@@ -23,7 +23,8 @@ export class LoginPage {
     this.usernameInput = page.getByLabel('用户名');
     this.passwordInput = page.getByLabel('密码');
     this.emailInput = page.getByLabel('邮箱');
-    this.submitButton = page.getByRole('button', { name: /登录|注册/ });
+    // 提交按钮用 type=submit 精确定位，避免与"没有账号？点击注册"(含"注册"字样)歧义
+    this.submitButton = page.locator('button[type="submit"]');
     this.toggleModeButton = page.getByRole('button', { name: /没有账号|已有账号/ });
     // Error message: find the error container (has red background) and get the text inside
     this.errorMessage = page.locator('[class*="bg-red-50"] p').first();
@@ -116,9 +117,10 @@ export class WordLearningPage {
   constructor(page: Page) {
     this.page = page;
     this.backButton = page.getByRole('button', { name: '返回' });
-    this.wordSpelling = page.getByRole('heading', { level: 1 });
-    // Phonetic: find the text below the spelling heading (gray text, larger size)
-    this.wordPhonetic = page.getByRole('heading', { level: 1 }).locator('..').locator('p').filter({ hasText: /^\/.*\/$/ });
+    // 单词拼写：用 data-testid 精确定位，避免与页头 <h1>VocabMaster</h1> 冲突
+    this.wordSpelling = page.getByTestId('word-spelling');
+    // Phonetic: 定位到拼写区域下方的音标 <p>（灰色斜杠包裹文本）
+    this.wordPhonetic = page.getByTestId('word-spelling').locator('../..').locator('p').filter({ hasText: /^\/.*\/$/ });
     // Meaning: the main content in the gray box
     this.wordMeaning = page.locator('[class*="bg-gray-50"] p').first();
     this.wordExample = page.getByText('例句:');
@@ -127,19 +129,12 @@ export class WordLearningPage {
     this.masteredButton = page.getByRole('button', { name: /标记已掌握|已掌握/ });
     this.progressText = page.getByText(/进度:/);
     this.masteredCount = page.getByText(/已掌握:/);
-    // Navigation dots: small round buttons used for word navigation
-    // Filter buttons by their small size characteristic (w-2 h-2 in Tailwind)
-    this.navigationDots = page.getByRole('button').filter({
-      has: page.locator('[class*="rounded-full"]')
-    }).filter({
-      has: page.locator('[class*="w-2"][class*="h-2"]')
-    });
-    // Pronunciation button: rounded-full button with speaker icon (SVG) next to spelling
-    this.pronunciationButton = page.getByRole('heading', { level: 1 }).locator('..').locator('button').filter({
-      has: page.locator('svg')
-    }).filter({
-      has: page.locator('[class*="rounded-full"]')
-    });
+    // Navigation dots: small round buttons used for word navigation,
+    // located by a stable data-testid (the dot's Tailwind classes live on the
+    // button itself, so a has:-child filter never matches).
+    this.navigationDots = page.getByTestId('nav-dot');
+    // Pronunciation button: 用 data-testid 精确定位（图标按钮，带 aria-label 可访问名）
+    this.pronunciationButton = page.getByTestId('pronunciation-button');
   }
 
   async expectLoaded() {
@@ -167,8 +162,10 @@ export class WordLearningPage {
   }
 
   async isMastered() {
+    // Mastered state renders "✓ 已掌握"; the un-mastered state renders
+    // "○ 标记已掌握" — both contain "已掌握", so key off the ✓ / 标记 marker.
     const text = await this.masteredButton.textContent();
-    return text?.includes('已掌握') || false;
+    return text?.includes('✓') || false;
   }
 
   async expectPrevDisabled() {

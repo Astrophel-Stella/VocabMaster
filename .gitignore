@@ -25,3 +25,7 @@ backend/media/audio/
 
 # Frontend test coverage output
 frontend/coverage/
+
+# Playwright E2E artifacts
+frontend/playwright-report/
+frontend/test-results/

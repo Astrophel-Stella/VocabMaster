@@ -84,8 +84,9 @@ test.describe('Pronunciation - REQ-WORD-003', () => {
     // Click logout button
     await page.getByRole('button', { name: '退出' }).click();
 
-    // Wait for redirect to login page
-    await expect(page.getByRole('heading', { name: '登录' })).toBeVisible({ timeout: 5000 });
+    // Wait for redirect to login page (login page has no "登录" heading;
+    // its heading is "📚 VocabMaster", so assert on the submit button).
+    await expect(page.getByRole('button', { name: '登录' })).toBeVisible({ timeout: 5000 });
 
     // Login with test user and select word bank to see word card
     // Then logout to test unauthenticated state
@@ -98,18 +99,18 @@ test.describe('Pronunciation - REQ-WORD-003', () => {
     const count = await cards.count();
     if (count > 0) {
       await cards.first().click();
-      await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId('word-spelling')).toBeVisible({ timeout: 10000 });
     }
 
     // Logout again
     await page.getByRole('button', { name: '退出' }).click();
-    await expect(page.getByRole('heading', { name: '登录' })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: '登录' })).toBeVisible({ timeout: 5000 });
 
     // Now navigate directly to see if pronunciation button is hidden
     // (In this app, unauthenticated users see login page, not word cards)
     // So we verify that after logout, user cannot access word cards
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: '登录' })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: '登录' })).toBeVisible({ timeout: 5000 });
   });
 
   test('REQ-WORD-003: Clicking different word pronunciation stops previous audio', async ({ page }) => {
