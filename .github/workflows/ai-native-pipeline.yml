@@ -69,13 +69,16 @@ jobs:
       - name: Coverage Check
         run: |
           cd frontend
-          npm run test -- --coverage --reporter=json --reporter=default
-          COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          # vitest.config.ts 已配置 v8 provider + json-summary reporter
+          npm run test:coverage
+          COVERAGE=$(jq '.total.lines.pct' coverage/coverage-summary.json)
           echo "Coverage: $COVERAGE%"
-          if [ $(echo "$COVERAGE < 70" | bc) -eq 1 ]; then
+          # 用 jq 做数值比较，避免依赖 bc
+          if jq -e '.total.lines.pct < 70' coverage/coverage-summary.json > /dev/null; then
             echo "❌ Coverage below 70%"
             exit 1
           fi
+          echo "✅ Coverage >= 70%"
 
       # E2E测试 (模拟生产配置)
       - name: Setup E2E Environment

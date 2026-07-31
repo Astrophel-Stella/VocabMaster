@@ -22,3 +22,6 @@ frontend/src-tauri/target
 
 # 发音音频缓存 - REQ-WORD-003
 backend/media/audio/
+
+# Frontend test coverage output
+frontend/coverage/
