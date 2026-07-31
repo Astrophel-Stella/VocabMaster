@@ -210,7 +210,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'issue_comment' &&
-      github.event.issue.labels.*.name.includes('deployment-confirmation') &&
+      contains(github.event.issue.labels.*.name, 'deployment-confirmation') &&
       contains(github.event.comment.body, '确认上线')
     steps:
       - uses: actions/checkout@v4
@@ -330,7 +330,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'issue_comment' &&
-      github.event.issue.labels.*.name.includes('deployment-confirmation') &&
+      contains(github.event.issue.labels.*.name, 'deployment-confirmation') &&
       contains(github.event.comment.body, '拒绝')
     steps:
       - name: Close Issue
