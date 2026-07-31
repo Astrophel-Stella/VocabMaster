@@ -271,7 +271,9 @@ export async function selectFirstWordBank(page: Page) {
   const cards = await wordBankPage.wordBankCards.all();
   if (cards.length > 0) {
     await cards[0].click();
-    // Wait for word card to appear
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 10000 });
+    // Wait for word card to appear. Use the word-spelling testid rather than
+    // heading level:1 — the app header is also an h1, so a bare level:1 query
+    // hits a strict-mode violation (two matches).
+    await expect(page.getByTestId('word-spelling')).toBeVisible({ timeout: 10000 });
   }
 }
