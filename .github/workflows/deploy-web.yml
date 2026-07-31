@@ -7,7 +7,7 @@ on:
   workflow_dispatch: {} # 目前仅手动触发，避免误上线
   # 预留：确认要自动发布网页版时，解开下面几行
   # push:
-  #   branches: [main]
+  #   branches: [master]
 
 jobs:
   build-web:

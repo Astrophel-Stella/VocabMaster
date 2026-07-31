@@ -1,10 +1,14 @@
 # 0015. 交付流水线（北极星蓝图）：master 起步、测试全过含E2E、架构审核、合并 master、人工部署
 
-- 状态: 提议
+- 状态: 已被取代（Superseded by ADR-0020，2026-07-31）
 - 日期: 2026-07-30
 - 关联 Issue: SOU-24（父）、SOU-25（触发本次复盘）
-- 关联文档: `CLAUDE.md` §8、`docs/build.md`、`specs/requirements.md`
+- 关联文档: `CLAUDE.md`、`docs/build.md`
 - 修正: 2026-07-30（据用户陈豪明确指令"合并是你架构师的事情，我只确认"，将合并 master 的执行方由"人工 owner"修正为"架构师"；本次 PR #18/#19/#20 已由架构师直接合并执行落地）
+
+> ⚠️ **已被 ADR-0020 取代**：本 ADR 的"架构师审核 + 架构师合并 master"模型已废弃。
+> 现行：验证靠确定性 CI；AI 只做 advisory 预审，**合并批准权在人类审核者**，上线确认权在用户。
+> 见 `docs/decisions/0020-single-swe-agent-human-gated-merge.md`。以下为历史保留。
 
 ## 背景
 

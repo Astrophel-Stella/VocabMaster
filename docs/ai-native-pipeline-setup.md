@@ -21,15 +21,15 @@
 | `SLACK_WEBHOOK` | Slack通知 | 无 |
 | `SENTRY_DSN` | Sentry错误追踪 | 无 |
 
-### 2. 配置GitHub Teams
+### 2. 配置GitHub审核者
 
-在 GitHub 组织设置中创建以下teams：
+新流水线只需要**人类审核者**这一个 GitHub 角色（有权在 PR 上 Approve）。
+无需 `product-engineers` / `quality-engineers` team——写代码与测试由 Multica「软件工程师」智能体承担，验证由 CI 承担。
 
-| Team名称 | 成员 | 职责 |
-|----------|------|------|
-| `architects` | 架构师账号 | 代码审核 |
-| `product-engineers` | 产品工程师账号 | 需求实现 |
-| `quality-engineers` | 质量工程师账号 | 测试验证 |
+| 角色 | 谁 | 职责 |
+|----------|------|--------|
+| 人类审核者 | 你 / 资深工程师 | 在 PR 上 Review 并 Approve（合并闸口） |
+| （可选）代码所有者 | 见 `.github/CODEOWNERS` | 自动请求审核 |
 
 ### 3. 配置生产服务器
 
@@ -75,14 +75,13 @@ gh pr create --title "Test: Pipeline" --body "Testing AI-Native Pipeline"
 
 # 观察流水线执行
 # 应该看到以下步骤自动执行：
-# 1. quality-gate (Lint + Test)
-# 2. e2e-tests (Playwright)
-# 3. request-architect-review (@架构师)
+# 1. quality-gate (Lint + TypeCheck + 单元 + 集成 + E2E + 覆盖率≥70%)
+# 2. request-architect-review (CI 全绿后请求人类审核 + AI 预审评论)
 ```
 
 ## 流水线详解
 
-### 阶段1: 代码质量门禁
+### 阶段1: 代码质量门禁（确定性验证）
 
 **触发条件**: PR创建/更新
 
@@ -91,7 +90,8 @@ gh pr create --title "Test: Pipeline" --body "Testing AI-Native Pipeline"
 2. TypeScript类型检查
 3. 单元测试
 4. 集成测试
-5. 覆盖率检查 (≥70%)
+5. E2E测试（Playwright，生产配置）
+6. 覆盖率检查 (≥70%)
 
 **通过条件**: 所有检查通过
 
@@ -99,56 +99,34 @@ gh pr create --title "Test: Pipeline" --body "Testing AI-Native Pipeline"
 - 通过 → 添加标签 `✅ quality-passed`
 - 失败 → 添加标签 `❌ quality-failed` + 自动评论
 
-### 阶段2: E2E测试
+### 阶段2: AI 预审 + 请求人类审核
 
 **触发条件**: 质量门禁通过
 
-**自动化步骤**:
-1. 启动测试环境 (Docker)
-2. 运行Playwright测试
-3. 生成测试报告
-
-**通过条件**: 所有E2E测试通过
-
 **自动动作**:
-- 通过 → 添加标签 `✅ e2e-passed`
-- 失败 → 自动评论 + 截图
+- 自动评论 AI 代码审查助手预审清单（advisory，仅供参考）
+- 提示**人类审核者** Review 并 Approve
 
-### 阶段3: 架构师审核
+> ⚠️ AI 只留评论，**不合并**。合并批准权在人类。
 
-**触发条件**: E2E测试通过
+### 阶段3: 自动合并
 
-**自动动作**:
-- 自动评论审核清单
-- 自动@架构师
-- 自动分配审核
-
-**架构师操作**:
-- 在PR页面点击 "Approve" → 自动合并
-- 或评论说明问题 → 退回修改
-
-### 阶段4: 自动合并
-
-**触发条件**: 架构师批准 (添加标签 `✅ architect-approved`)
+**触发条件**: 人类审核者在 PR 上 Approve → `pull_request_review` 事件自动打标签 `✅ approved`
 
 **自动动作**:
 - Squash合并PR到master
 - 自动评论通知
-- 关闭PR
+- 自动创建部署确认Issue → @用户 (陈豪)
 
-### 阶段5: 创建部署确认
+### 阶段4: 部署确认（人类闸口）
 
-**触发条件**: 代码合并到master
-
-**自动动作**:
-- 创建部署确认Issue
-- 自动@用户 (陈豪)
+**触发条件**: 部署确认Issue创建
 
 **用户操作**:
 - 回复 "确认上线" → 开始部署
 - 回复 "拒绝" → 取消部署
 
-### 阶段6: 自动部署
+### 阶段5: 自动部署
 
 **触发条件**: 用户回复"确认上线"
 
@@ -228,4 +206,4 @@ A: 修改 `.github/workflows/ai-native-pipeline.yml` 中的覆盖率阈值。
 
 ## 支持
 
-如有问题，请联系架构师或在仓库创建Issue。
+如有问题，请联系人类审核者或在仓库创建Issue。

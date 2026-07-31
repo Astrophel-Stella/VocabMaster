@@ -1,12 +1,10 @@
-# CI：每次 push / PR 自动做 类型检查 + lint + 单测
-# 这是「全自动开发测试」的第一道关口。
+# CI：master 分支的合并后兜底校验（类型检查 + lint + 单测）
+# PR 阶段的完整质量门禁由 ai-native-pipeline.yml 负责，这里不重复跑 PR，避免浪费。
 name: CI
 
 on:
   push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
+    branches: [master]
   workflow_dispatch: {} # 支持手动触发
 
 jobs:
