@@ -285,10 +285,10 @@ jobs:
           # 测试API
           curl -f http://${{ secrets.PROD_HOST }}:8000/health || exit 1
 
-          # 测试登录API
-          curl -X POST http://${{ secrets.PROD_HOST }}:8000/api/auth/login \
-            -H "Content-Type: application/json" \
-            -d '{"username":"test","password":"123456"}' || exit 1
+          # 测试登录API（OAuth2PasswordRequestForm 要求 form 编码，不是 JSON）
+          curl -f -X POST http://${{ secrets.PROD_HOST }}:8000/api/auth/login \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "username=test&password=123456" || exit 1
 
           echo "✅ 冒烟测试通过"
 
