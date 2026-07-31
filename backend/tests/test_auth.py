@@ -395,6 +395,44 @@ class TestForgotPassword:
         assert response2.status_code == 400
         assert "链接已失效" in response2.json()["detail"]
 
+    def test_REQ_AUTH_007_token_expired(self, client: TestClient, db_session):
+        """REQ-AUTH-007: Token 过期（超过24小时）应显示错误"""
+        from app.models.user import User
+        from datetime import datetime, timedelta
+
+        # Register user and request reset
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "expireduser",
+                "email": "expired@example.com",
+                "password": "OldPassword123"
+            }
+        )
+        client.post(
+            "/api/auth/forgot-password",
+            json={"email": "expired@example.com"}
+        )
+
+        # Get the token and manually expire it
+        user = db_session.query(User).filter(User.email == "expired@example.com").first()
+        token = user.reset_token
+
+        # Set token expiration to the past (25 hours ago)
+        user.reset_token_expires = datetime.utcnow() - timedelta(hours=25)
+        db_session.commit()
+
+        # Try to reset with expired token
+        response = client.post(
+            "/api/auth/reset-password",
+            json={
+                "token": token,
+                "new_password": "NewPassword456"
+            }
+        )
+        assert response.status_code == 400
+        assert "链接已过期，请重新申请重置" in response.json()["detail"]
+
 
 # REQ-AUTH-009: Password change tests
 class TestChangePassword:
@@ -483,6 +521,99 @@ class TestChangePassword:
             }
         )
         assert response.status_code == 400
+<<<<<<< HEAD
+=======
+        assert "链接已过期，请重新申请重置" in response.json()["detail"]
+
+
+# REQ-AUTH-009: Password change tests
+class TestChangePassword:
+    """REQ-AUTH-009: Password change test cases"""
+
+    def test_REQ_AUTH_009_change_password_success(self, client: TestClient):
+        """REQ-AUTH-009: 正确输入旧密码和新密码应修改成功"""
+        # Register and login
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "pwdtest",
+                "email": "pwdtest@example.com",
+                "password": "Password123"
+            }
+        )
+        login_response = client.post(
+            "/api/auth/login",
+            data={
+                "username": "pwdtest",
+                "password": "Password123"
+            }
+        )
+        token = login_response.json()["access_token"]
+
+        # Change password
+        response = client.put(
+            "/api/auth/password",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "old_password": "Password123",
+                "new_password": "NewPassword456"
+            }
+        )
+        assert response.status_code == 200
+        assert response.json()["message"] == "密码修改成功，请重新登录"
+
+        # Verify can login with new password
+        login_response = client.post(
+            "/api/auth/login",
+            data={
+                "username": "pwdtest",
+                "password": "NewPassword456"
+            }
+        )
+        assert login_response.status_code == 200
+        assert "access_token" in login_response.json()
+
+        # Verify old password no longer works
+        old_login_response = client.post(
+            "/api/auth/login",
+            data={
+                "username": "pwdtest",
+                "password": "Password123"
+            }
+        )
+        assert old_login_response.status_code == 401
+
+    def test_REQ_AUTH_009_old_password_incorrect(self, client: TestClient):
+        """REQ-AUTH-009: 旧密码错误应拒绝修改"""
+        # Register and login
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "wrongoldpwd",
+                "email": "wrongoldpwd@example.com",
+                "password": "Password123"
+            }
+        )
+        login_response = client.post(
+            "/api/auth/login",
+            data={
+                "username": "wrongoldpwd",
+                "password": "Password123"
+            }
+        )
+        token = login_response.json()["access_token"]
+
+        # Try to change with wrong old password
+        response = client.put(
+            "/api/auth/password",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "old_password": "WrongPassword",
+                "new_password": "NewPassword456"
+            }
+        )
+        assert response.status_code == 400
+>>>>>>> 2300428 (test(auth): 添加 REQ-AUTH-007 Token 过期测试用例 (SOU-32))
         assert "旧密码错误" in response.json()["detail"]
 
     def test_REQ_AUTH_009_new_password_weak(self, client: TestClient):
