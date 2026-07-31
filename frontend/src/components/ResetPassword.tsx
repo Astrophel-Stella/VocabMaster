@@ -157,8 +157,9 @@ export function ResetPassword({ token }: ResetPasswordProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">新密码</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">新密码</label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -171,8 +172,9 @@ export function ResetPassword({ token }: ResetPasswordProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">确认密码</label>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">确认密码</label>
             <input
+              id="confirmPassword"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
