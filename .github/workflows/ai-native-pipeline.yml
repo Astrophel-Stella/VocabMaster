@@ -274,10 +274,10 @@ jobs:
             git reset --hard origin/master
 
             echo "🔨 构建Docker镜像"
-            docker-compose -f docker-compose.prod.yml build --no-cache
+            docker compose -f docker-compose.prod.yml build --no-cache
 
             echo "🚀 滚动更新部署"
-            docker-compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml up -d
 
             echo "⏳ 等待服务启动"
             sleep 30
@@ -340,7 +340,7 @@ jobs:
             const rollback = `
               cd /opt/vocabmaster
               git reset --hard HEAD~1
-              docker-compose -f docker-compose.prod.yml up -d --build
+              docker compose -f docker-compose.prod.yml up -d --build
             `;
 
             await github.rest.issues.createComment({
