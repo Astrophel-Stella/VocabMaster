@@ -3,7 +3,7 @@ name: Feature Request
 about: 新功能需求
 title: '[需求] '
 labels: ['feature', 'needs-analysis']
-assignees: ['产品工程师']
+assignees: ['软件工程师']
 ---
 
 ## 需求描述
@@ -45,8 +45,8 @@ Then [错误提示]
 ---
 
 **自动流转规则**：
-- 创建后自动分配给产品工程师
-- 产品工程师完成后自动创建QA Issue
-- QA通过后自动@架构师审核
-- 架构师通过后自动合并
-- 合并后自动创建部署确认Issue
+- 创建后自动分配给软件工程师
+- 软件工程师同 PR 完成代码 + 单元/集成/E2E 测试
+- CI 全绿后 AI 代码审查助手预审 (advisory)
+- 人类审核者 Approve 后自动合并 master
+- 合并后自动创建部署确认Issue → 用户确认上线

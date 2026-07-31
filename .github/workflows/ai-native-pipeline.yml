@@ -3,12 +3,33 @@ name: AI-Native Pipeline (Simplified - Single Server)
 on:
   pull_request:
     types: [opened, synchronize, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted]
   push:
     branches: [master]
   issue_comment:
     types: [created]
 
 jobs:
+  # ═══════════════════════════════════════════════════════════════
+  # 人类审核闸口: 人类在 PR 上 Approve → 自动打 ✅ approved 标签
+  # 这是唯一能触发合并的路径，AI 无法自行 Approve，合并权锁在人类
+  # ═══════════════════════════════════════════════════════════════
+  human-approval-gate:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
+    steps:
+      - name: Apply approved label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: ['✅ approved']
+            })
+
   # ═══════════════════════════════════════════════════════════════
   # 阶段1: 质量门禁 (本机开发环境验证)
   # 触发: PR创建/更新
@@ -109,9 +130,9 @@ jobs:
             })
 
   # ═══════════════════════════════════════════════════════════════
-  # 阶段2: 架构师审核 (自动通知)
+  # 阶段2: AI 预审 (advisory) + 请求人类审核
   # 触发: 质量门禁通过
-  # 动作: 自动@架构师 + 自动分配审核
+  # 动作: 提示 AI 代码审查助手预审 + 请求人类审核者 Approve
   # ═══════════════════════════════════════════════════════════════
   request-architect-review:
     runs-on: ubuntu-latest
@@ -126,20 +147,21 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `## 📋 等待架构师审核\n\n### 审核清单\n\n- [ ] 代码质量符合规范\n- [ ] 测试覆盖关键路径\n- [ ] 架构设计合理\n- [ ] 无安全隐患\n\n### 自动化检查结果\n\n- ✅ Lint检查通过\n- ✅ 单元测试通过\n- ✅ 集成测试通过\n- ✅ E2E测试通过\n- ✅ 覆盖率达标\n\n---\n\n**架构师审核通过后**，PR会自动合并到master。`
+              body: `## 📋 CI 全绿，进入审核阶段\n\n### AI 代码审查助手预审清单 (advisory，仅供参考)\n\n- [ ] 配置一致性 (无硬编码 host/URL，生产无 localhost)\n- [ ] 测试充分 (E2E 用生产配置，覆盖率≥70%，bug 有复现测试)\n- [ ] 代码质量 (无吞异常/@ts-ignore/删断言作弊)\n- [ ] 架构合理 + 安全 (权限/token 有效期/敏感信息)\n\n### 确定性门禁结果\n\n- ✅ Lint / TypeCheck 通过\n- ✅ 单元 / 集成测试通过\n- ✅ E2E 测试通过 (生产配置)\n- ✅ 覆盖率达标\n\n---\n\n⚠️ **合并闸口是人类，不是 AI**。AI 预审只留评论供参考。\n请**人类审核者** Review 并 Approve 后，PR 会自动合并到 master。`
             })
 
   # ═══════════════════════════════════════════════════════════════
   # 阶段3: 自动合并
-  # 触发: 架构师批准 (添加标签 ✅ architect-approved)
+  # 触发: 人类审核者 Approve (添加标签 ✅ approved)
   # 动作: 自动合并PR到master + 创建部署确认Issue
+  # 说明: 该标签只应由人类审核者的 PR Approve 触发，禁止 AI 自行添加
   # ═══════════════════════════════════════════════════════════════
   auto-merge-and-create-deployment-issue:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, '✅ quality-passed') &&
-      contains(github.event.pull_request.labels.*.name, '✅ architect-approved')
+      contains(github.event.pull_request.labels.*.name, '✅ approved')
     steps:
       - name: Merge PR
         uses: actions/github-script@v7
@@ -289,7 +311,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `## ❌ 部署失败\n\n**状态**: 已自动回滚到上一版本\n\n**失败原因**: 检查上方日志\n\n**下一步**: 产品工程师修复问题后重新创建部署确认Issue。\n\n---\n\n服务已回滚，当前运行上一版本。`
+              body: `## ❌ 部署失败\n\n**状态**: 已自动回滚到上一版本\n\n**失败原因**: 检查上方日志\n\n**下一步**: 软件工程师修复问题后重新创建部署确认Issue。\n\n---\n\n服务已回滚，当前运行上一版本。`
             })
 
             await github.rest.issues.addLabels({
