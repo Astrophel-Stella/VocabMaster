@@ -43,7 +43,7 @@ describe('LoginPanel Component - REQ-UI-001', () => {
 
       expect(screen.getByRole('heading', { name: /vocabmaster/i })).toBeInTheDocument();
       expect(screen.getByText(/用户名/i)).toBeInTheDocument();
-      expect(screen.getByText(/密码/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/密码/i)).toBeInTheDocument();
       expect(screen.queryByText(/邮箱/i)).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /登录/i })).toBeInTheDocument();
     });
