@@ -278,3 +278,123 @@ export async function selectFirstWordBank(page: Page) {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 10000 });
   }
 }
+
+/**
+ * Forgot Password Page Object
+ * REQ-AUTH-007: 忘记密码功能
+ */
+export class ForgotPasswordPage {
+  readonly page: Page;
+  readonly title: Locator;
+  readonly emailInput: Locator;
+  readonly submitButton: Locator;
+  readonly backButton: Locator;
+  readonly errorMessage: Locator;
+  readonly successMessage: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    // Title: heading containing "忘记密码"
+    this.title = page.getByRole('heading', { name: '忘记密码' });
+    // Email input: labeled "邮箱"
+    this.emailInput = page.getByLabel('邮箱');
+    // Submit button: "发送重置邮件"
+    this.submitButton = page.getByRole('button', { name: '发送重置邮件' });
+    // Back button: "返回登录"
+    this.backButton = page.getByRole('button', { name: '返回登录' });
+    // Error message: red background container
+    this.errorMessage = page.locator('[class*="bg-red-50"] p').first();
+    // Success message: heading "邮件已发送"
+    this.successMessage = page.getByRole('heading', { name: '邮件已发送' });
+  }
+
+  async goto() {
+    await this.page.goto('/forgot-password');
+  }
+
+  async submitEmail(email: string) {
+    await this.emailInput.fill(email);
+    await this.submitButton.click();
+  }
+
+  async expectLoaded() {
+    await expect(this.title).toBeVisible();
+  }
+
+  async expectErrorVisible() {
+    await expect(this.errorMessage).toBeVisible();
+  }
+
+  async expectSuccessVisible() {
+    await expect(this.successMessage).toBeVisible();
+  }
+
+  async goBack() {
+    await this.backButton.click();
+  }
+}
+
+/**
+ * Reset Password Page Object
+ * REQ-AUTH-007: 重置密码功能
+ */
+export class ResetPasswordPage {
+  readonly page: Page;
+  readonly title: Locator;
+  readonly passwordInput: Locator;
+  readonly confirmPasswordInput: Locator;
+  readonly submitButton: Locator;
+  readonly backButton: Locator;
+  readonly errorMessage: Locator;
+  readonly successMessage: Locator;
+  readonly strengthIndicator: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    // Title: heading containing "重置密码"
+    this.title = page.getByRole('heading', { name: '重置密码' });
+    // Password inputs: labeled "新密码" and "确认密码"
+    this.passwordInput = page.getByLabel('新密码');
+    this.confirmPasswordInput = page.getByLabel('确认密码');
+    // Submit button: "重置密码"
+    this.submitButton = page.getByRole('button', { name: '重置密码' });
+    // Back button: "返回登录"
+    this.backButton = page.getByRole('button', { name: '返回登录' });
+    // Error message: red background container
+    this.errorMessage = page.locator('[class*="bg-red-50"] p').first();
+    // Success message: heading "密码重置成功"
+    this.successMessage = page.getByRole('heading', { name: '密码重置成功' });
+    // Strength indicator label
+    this.strengthIndicator = page.getByText(/密码强度：/);
+  }
+
+  async goto(token: string) {
+    await this.page.goto(`/reset-password?token=${token}`);
+  }
+
+  async submitPassword(password: string, confirmPassword: string) {
+    await this.passwordInput.fill(password);
+    await this.confirmPasswordInput.fill(confirmPassword);
+    await this.submitButton.click();
+  }
+
+  async expectLoaded() {
+    await expect(this.title).toBeVisible();
+  }
+
+  async expectErrorVisible() {
+    await expect(this.errorMessage).toBeVisible();
+  }
+
+  async expectSuccessVisible() {
+    await expect(this.successMessage).toBeVisible();
+  }
+
+  async expectStrengthIndicatorVisible() {
+    await expect(this.strengthIndicator).toBeVisible();
+  }
+
+  async goBack() {
+    await this.backButton.click();
+  }
+}
