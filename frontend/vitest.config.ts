@@ -14,5 +14,19 @@ export default defineConfig({
     globals: true,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     setupFiles: ['src/test-setup.ts'],
+    coverage: {
+      provider: 'v8',
+      // json-summary 生成 coverage/coverage-summary.json，供 CI 门禁读取 .total.lines.pct
+      reporter: ['text', 'json-summary', 'json'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.{test,spec}.{ts,tsx}',
+        'src/test-setup.ts',
+        'src/**/*.d.ts',
+        'src/main.tsx',
+        'src/vite-env.d.ts',
+      ],
+    },
   },
 })

@@ -64,8 +64,9 @@ test.describe('Word Bank Selection - REQ-UI-002 / REQ-WB-001', () => {
     await wordBankPage.selectBank('高考英语');
 
     // Should navigate to word learning page
-    // Wait for word card to appear (spelling is displayed)
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 10000 });
+    // Wait for word card to appear (spelling is displayed). Use the
+    // word-spelling testid; heading level:1 also matches the app header.
+    await expect(page.getByTestId('word-spelling')).toBeVisible({ timeout: 10000 });
 
     // Verify we're on the word learning page by checking for word card elements
     await expect(page.getByText(/进度:/)).toBeVisible();

@@ -247,9 +247,7 @@ describe('WordCard Component - REQ-UI-003', () => {
       render(<WordCard />);
 
       // Click on the second dot (index 1)
-      const dots = screen.getAllByRole('button', { name: '' }).filter(btn =>
-        btn.className.includes('rounded-full') && btn.className.includes('w-2')
-      );
+      const dots = screen.getAllByTestId('nav-dot');
 
       if (dots.length > 1) {
         await user.click(dots[1]);

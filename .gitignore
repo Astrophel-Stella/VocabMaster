@@ -22,3 +22,13 @@ frontend/src-tauri/target
 
 # 发音音频缓存 - REQ-WORD-003
 backend/media/audio/
+
+# Frontend test coverage output
+frontend/coverage/
+
+# Playwright E2E artifacts
+frontend/playwright-report/
+frontend/test-results/
+
+# 临时 commit message 文件（agent 提交时中转用，勿入库）
+commit-msg.txt

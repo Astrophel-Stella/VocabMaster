@@ -84,9 +84,11 @@ export function WordCard() {
         {/* Spelling with Pronunciation Button - REQ-WORD-003 */}
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <h1 className="text-5xl font-bold text-gray-900">{currentWord.spelling}</h1>
+            <h1 data-testid="word-spelling" className="text-5xl font-bold text-gray-900">{currentWord.spelling}</h1>
             {isAuthenticated && (
               <button
+                data-testid="pronunciation-button"
+                aria-label={isPronunciationPlaying ? '停止发音' : '播放发音'}
                 onClick={handlePronunciation}
                 disabled={isPronunciationLoading}
                 className={`p-2 rounded-full transition-all ${
@@ -179,6 +181,9 @@ export function WordCard() {
           <button
             key={i}
             onClick={() => goToWord(i)}
+            data-testid="nav-dot"
+            aria-label={`跳转到第 ${i + 1} 个单词`}
+            aria-current={i === currentWordIndex ? 'true' : undefined}
             className={`w-2 h-2 rounded-full transition-colors ${
               i === currentWordIndex ? 'bg-indigo-600' : 'bg-gray-300 hover:bg-gray-400'
             }`}

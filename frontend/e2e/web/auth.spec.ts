@@ -136,7 +136,9 @@ test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
     // Try to register with existing username 'test'
     await loginPage.usernameInput.fill('test');
     await loginPage.emailInput.fill('test@example.com');
-    await loginPage.passwordInput.fill('123456');
+    // Use a strength-compliant password so the request reaches the
+    // duplicate-username check rather than being rejected for weak password.
+    await loginPage.passwordInput.fill('Password123');
 
     await loginPage.submitButton.click();
 
@@ -403,7 +405,7 @@ test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
       await forgotPasswordPage.sendResetEmail(uniqueEmail);
 
       // Should show success message
-      await expect(page.getByText('邮件已发送')).toBeVisible();
+      await expect(page.getByRole('heading', { name: '邮件已发送' })).toBeVisible();
       await expect(page.getByText(uniqueEmail)).toBeVisible();
       await expect(page.getByText('24 小时')).toBeVisible();
     });
@@ -492,8 +494,10 @@ test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
       // Submit form
       await page.getByRole('button', { name: '重置密码' }).click();
 
-      // Should show validation error about password strength
-      await expect(page.locator('[class*="bg-red-50"]')).toBeVisible();
+      // Should show validation error about password strength.
+      // Scope to the error banner (bg-red-50); a bare [class*="bg-red-50"]
+      // also matches the bg-red-500 strength-meter bar.
+      await expect(page.locator('.bg-red-50')).toBeVisible();
     });
 
     test('REQ-AUTH-007: Successful reset redirects to login', async ({ page }) => {
