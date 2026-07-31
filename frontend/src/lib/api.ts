@@ -89,9 +89,9 @@ export async function login(username: string, password: string): Promise<Token> 
 
   if (!response.ok) {
     const error = await response.json();
-    // Distinguish 401 (auth failure) from other errors
+    // For 401 auth failures, use Chinese localized message (ignore backend English text)
     if (response.status === 401) {
-      throw new Error(error.detail || '用户名或密码错误');
+      throw new Error('用户名或密码错误');
     }
     throw new Error(error.detail || '登录失败');
   }
