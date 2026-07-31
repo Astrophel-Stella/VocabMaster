@@ -66,6 +66,9 @@ jobs:
       - name: Backend - Integration Tests
         run: cd backend && pytest tests/ -v
 
+      - name: Install Playwright Browsers
+        run: cd frontend && npx playwright install --with-deps chromium
+
       - name: Coverage Check
         run: |
           cd frontend
@@ -80,21 +83,24 @@ jobs:
           fi
           echo "✅ Coverage >= 70%"
 
-      # E2E测试 (模拟生产配置)
+      # E2E测试 (生产构建模式)
       - name: Setup E2E Environment
         run: |
-          # 启动后端
+          # 启动后端 (先跑种子脚本: test/123456 用户 + 词库数据)
           cd backend
           cp .env.example .env
+          python init_db.py
           uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-          sleep 10
+          # 等待后端健康就绪
+          for i in $(seq 1 30); do curl -sf http://localhost:8000/health && break || sleep 1; done
 
-          # 启动前端 (生产配置)
+          # 前端生产构建；E2E 中 API 指向 CI 内的测试后端 (VITE_ 进程变量优先级高于 .env 文件)
           cd ../frontend
           cp .env.production .env
-          npm run build
+          VITE_API_URL=http://localhost:8000 npm run build
           npm run preview -- --port 5173 &
-          sleep 10
+          # 等待前端就绪
+          for i in $(seq 1 30); do curl -sf http://localhost:5173/ && break || sleep 2; done
 
       - name: Run E2E Tests
         run: |
