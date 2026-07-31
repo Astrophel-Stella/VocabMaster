@@ -7,7 +7,7 @@ import { apiFetch, type ApiResponse } from '../adapters';
 // 从环境变量获取 API 地址
 // - 如果设置了 VITE_API_URL，使用该地址（例如开发环境 localhost:8000）
 // - 如果未设置或为空，使用相对路径 /api（生产环境 nginx 反向代理）
-const API_BASE = import.meta.env.VITE_API_URL
+export const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
   : '/api';
 

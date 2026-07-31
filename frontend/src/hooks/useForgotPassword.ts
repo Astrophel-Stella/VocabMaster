@@ -5,11 +5,7 @@
 
 import { useState } from 'react';
 import { apiFetch } from '../adapters';
-
-// 从环境变量获取 API 地址
-const API_BASE = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}/api`
-  : 'http://localhost:8000/api';
+import { API_BASE } from '../lib/api';
 
 /**
  * 发送密码重置邮件
