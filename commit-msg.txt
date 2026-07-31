@@ -1,0 +1,14 @@
+fix(ci): 补全 GITHUB_TOKEN 写权限 - 修复打标签 403
+
+质量测试（Lint/TypeCheck/单测/后端/覆盖率/E2E）已全部通过，但
+`Label PR - Quality Passed` 步骤报 403 Resource not accessible by
+integration：workflow 未声明 permissions，GITHUB_TOKEN 默认只读，
+无法给 PR 打标签。
+
+顶层补 permissions：
+- contents: write（合并 PR）
+- pull-requests: write（打标签/评论 PR）
+- issues: write（创建部署确认 issue）
+
+这是整条 pipeline 后续 addLabels/merge/createIssue 都需要的权限，
+一次补齐。
