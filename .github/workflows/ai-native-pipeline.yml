@@ -20,23 +20,93 @@ permissions:
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
-  # 人类审核闸口: 人类在 PR 上 Approve → 自动打 ✅ approved 标签
-  # 这是唯一能触发合并的路径，AI 无法自行 Approve，合并权锁在人类
+  # 人类审核闸口 (合并 + 建部署确认 Issue 一步到位)
+  # 触发路径 (二选一，都是"人类主动"，AI 绝不自行触发):
+  #   1) 人类在 PR 上 GitHub Approve
+  #   2) 人类在 PR 评论口令「酸豇豆确认通过」或「Approve」
+  #      —— 用于"作者即审核者"场景 (GitHub 禁止作者 Approve 自己的 PR)
+  # 前置: 必须已通过质量门禁 (✅ quality-passed)。幂等: 已批准则跳过。
+  # 说明: 直接在本 job 内完成合并，不依赖 label 事件二次触发
+  #      (GITHUB_TOKEN 打的 label 不会再触发 workflow)。
   # ═══════════════════════════════════════════════════════════════
-  human-approval-gate:
+  finalize-approval:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
+    if: |
+      (github.event_name == 'pull_request_review' && github.event.review.state == 'approved') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       github.event.comment.user.type != 'Bot' &&
+       (contains(github.event.comment.body, '酸豇豆确认通过') || contains(github.event.comment.body, 'Approve')) &&
+       (github.event.comment.author_association == 'OWNER' ||
+        github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'COLLABORATOR'))
     steps:
-      - name: Apply approved label
+      - name: Human approval → merge & create deployment issue
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              labels: ['✅ approved']
-            })
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const prNumber = context.issue.number;
+
+            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+            const labels = pr.labels.map(l => l.name);
+
+            // 幂等: 已批准过则跳过 (防止 Approve + 口令 双触发重复建 Issue)
+            if (labels.includes('✅ approved')) { console.log('already approved, skip'); return; }
+            // 前置门禁
+            if (!labels.includes('✅ quality-passed')) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: prNumber,
+                body: '⚠️ 收到人类通过信号，但质量门禁 `✅ quality-passed` 尚未就绪，暂不合并。待 CI 全绿后再操作。' });
+              return;
+            }
+            if (pr.state !== 'open') {
+              await github.rest.issues.createComment({ owner, repo, issue_number: prNumber,
+                body: 'ℹ️ 该 PR 已不是 open 状态，跳过合并。' });
+              return;
+            }
+
+            const who = context.eventName === 'issue_comment'
+              ? context.payload.comment.user.login
+              : context.payload.review.user.login;
+
+            // 审计留痕 (人类主动口令/Approve 触发，非 AI 自作主张)
+            await github.rest.issues.addLabels({ owner, repo, issue_number: prNumber, labels: ['✅ approved'] });
+
+            // 合并
+            await github.rest.pulls.merge({ owner, repo, pull_number: prNumber,
+              merge_method: 'squash', commit_title: `${pr.title} (#${prNumber})` });
+
+            await github.rest.issues.createComment({ owner, repo, issue_number: prNumber,
+              body: `## ✅ 人类审核通过 (by @${who})\n\n已合并到 master。合并后的 push 会自动创建部署确认 Issue。` });
+
+  # ═══════════════════════════════════════════════════════════════
+  # 部署确认 Issue 创建 (与审批机制解耦)
+  # 触发: 任何方式使 master 更新 (自动合并 或 手动点绿色 Merge 按钮)
+  # 说明: push 事件使用"被推送 commit 里"的 workflow 版本，故本 job
+  #      在合并 PR 的那一刻即生效，不受"作者不能 Approve"限制影响。
+  #      修掉旧设计缺陷: 原来只有 label 路径建 Issue，手动合并会漏建。
+  # ═══════════════════════════════════════════════════════════════
+  create-deployment-issue:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Create Deployment Confirmation Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = context.sha.slice(0, 7);
+            const title = (context.payload.head_commit && context.payload.head_commit.message || '').split('\n')[0];
+            const date = new Date().toISOString().split('T')[0];
+
+            await github.rest.issues.create({
+              owner, repo,
+              title: `🚀 部署确认 - ${date} (${sha})`,
+              body: `## 部署信息\n\n- **分支**: master\n- **Commit**: ${sha}\n- **时间**: ${new Date().toISOString()}\n- **变更**: ${title || '(无 commit 标题)'}\n\n---\n\n## ✅ 确认上线\n\n回复 **"确认上线"** 开始自动部署。\n\n回复 **"拒绝"** 取消部署。\n\n### 部署流程\n\n1. 构建Docker镜像\n2. SSH到生产服务器 (111.229.214.179)\n3. 拉取最新代码\n4. 重新部署\n5. 冒烟测试验证\n6. 报告结果\n\n---\n\n**注意**: 部署期间服务不会中断（滚动更新）。如冒烟测试失败会自动回滚。`,
+              labels: ['deployment-confirmation', 'waiting-user-confirmation']
+            });
 
   # ═══════════════════════════════════════════════════════════════
   # 阶段1: 质量门禁 (本机开发环境验证)
@@ -168,57 +238,6 @@ jobs:
             })
 
   # ═══════════════════════════════════════════════════════════════
-  # 阶段3: 自动合并
-  # 触发: 人类审核者 Approve (添加标签 ✅ approved)
-  # 动作: 自动合并PR到master + 创建部署确认Issue
-  # 说明: 该标签只应由人类审核者的 PR Approve 触发，禁止 AI 自行添加
-  # ═══════════════════════════════════════════════════════════════
-  auto-merge-and-create-deployment-issue:
-    runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'pull_request' &&
-      contains(github.event.pull_request.labels.*.name, '✅ quality-passed') &&
-      contains(github.event.pull_request.labels.*.name, '✅ approved')
-    steps:
-      - name: Merge PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request
-
-            // 合并PR
-            await github.rest.pulls.merge({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.number,
-              merge_method: 'squash',
-              commit_title: `${pr.title} (#${pr.number})`
-            })
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `## ✅ 已合并到master\n\n代码已合并，正在创建部署确认Issue...`
-            })
-
-      - name: Create Deployment Confirmation Issue
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request
-            const date = new Date().toISOString().split('T')[0]
-
-            const issue = await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🚀 部署确认 - ${date}`,
-              body: `## 部署信息\n\n- **分支**: master\n- **PR**: #${pr.number}\n- **时间**: ${new Date().toISOString()}\n- **变更**: ${pr.title}\n\n## 变更内容\n\n${pr.body || '无详细说明'}\n\n---\n\n## ✅ 确认上线\n\n回复 **"确认上线"** 开始自动部署。\n\n回复 **"拒绝"** 取消部署。\n\n### 部署流程\n\n1. 构建Docker镜像\n2. SSH到生产服务器 (111.229.214.179)\n3. 拉取最新代码\n4. 重新部署\n5. 冒烟测试验证\n6. 报告结果\n\n---\n\n**注意**: 部署期间服务不会中断（滚动更新）。如冒烟测试失败会自动回滚。`,
-              labels: ['deployment-confirmation', 'waiting-user-confirmation'],
-              assignees: ['陈豪']
-            })
-
-  # ═══════════════════════════════════════════════════════════════
   # 阶段4: 自动部署到生产 (单服务器)
   # 触发: 用户在部署确认Issue回复"确认上线"
   # 动作: SSH到生产服务器 → 拉取代码 → 部署 → 冒烟测试
@@ -285,10 +304,10 @@ jobs:
           # 测试API
           curl -f http://${{ secrets.PROD_HOST }}:8000/health || exit 1
 
-          # 测试登录API
-          curl -X POST http://${{ secrets.PROD_HOST }}:8000/api/auth/login \
-            -H "Content-Type: application/json" \
-            -d '{"username":"test","password":"123456"}' || exit 1
+          # 测试登录API（OAuth2PasswordRequestForm 要求 form 编码，不是 JSON）
+          curl -f -X POST http://${{ secrets.PROD_HOST }}:8000/api/auth/login \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "username=test&password=123456" || exit 1
 
           echo "✅ 冒烟测试通过"
 
