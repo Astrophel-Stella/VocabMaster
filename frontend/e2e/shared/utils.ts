@@ -121,14 +121,17 @@ export class WordLearningPage {
     this.wordSpelling = page.getByTestId('word-spelling');
     // Phonetic: 定位到拼写区域下方的音标 <p>（灰色斜杠包裹文本）
     this.wordPhonetic = page.getByTestId('word-spelling').locator('../..').locator('p').filter({ hasText: /^\/.*\/$/ });
-    // Meaning: the main content in the gray box
-    this.wordMeaning = page.locator('[class*="bg-gray-50"] p').first();
+    // Meaning: the main content in the gray box (use data-testid for stability)
+    this.wordMeaning = page.getByTestId('word-meaning');
     this.wordExample = page.getByText('例句:');
     this.prevButton = page.getByRole('button', { name: '上一个' });
     this.nextButton = page.getByRole('button', { name: '下一个' });
     this.masteredButton = page.getByRole('button', { name: /标记已掌握|已掌握/ });
-    this.progressText = page.getByText(/进度:/);
-    this.masteredCount = page.getByText(/已掌握:/);
+    // Updated to match new UI: progress shows as styled box with current index number
+    // The text "进度:" is no longer shown, but we can find the progress area by looking for the index display
+    this.progressText = page.locator('div').filter({ hasText: /^\d+$/ }).locator('..').filter({ has: page.locator('span.text-gray-400') });
+    // Updated to match new UI: mastered count shows as "已掌握 X / Y" in a pill badge
+    this.masteredCount = page.getByText(/已掌握 \d+ \/ \d+/);
     // Navigation dots: small round buttons used for word navigation,
     // located by a stable data-testid (the dot's Tailwind classes live on the
     // button itself, so a has:-child filter never matches).
@@ -162,10 +165,9 @@ export class WordLearningPage {
   }
 
   async isMastered() {
-    // Mastered state renders "✓ 已掌握"; the un-mastered state renders
-    // "○ 标记已掌握" — both contain "已掌握", so key off the ✓ / 标记 marker.
-    const text = await this.masteredButton.textContent();
-    return text?.includes('✓') || false;
+    // Use aria-pressed attribute which is more reliable than text content
+    const pressed = await this.masteredButton.getAttribute('aria-pressed');
+    return pressed === 'true';
   }
 
   async expectPrevDisabled() {
@@ -177,8 +179,12 @@ export class WordLearningPage {
   }
 
   async getCurrentProgress() {
-    const text = await this.progressText.textContent();
-    const match = text?.match(/进度:\s*(\d+)\s*\/\s*(\d+)/);
+    // New UI: progress shows as styled box with current index number
+    // Find the container that has the current index and total
+    const container = this.page.locator('div.flex.justify-between.items-center.text-sm').first();
+    const text = await container.textContent();
+    // Extract numbers from text like "1 / 100"
+    const match = text?.match(/(\d+)\s*\/\s*(\d+)/);
     if (match) {
       return { current: parseInt(match[1]), total: parseInt(match[2]) };
     }
@@ -187,7 +193,8 @@ export class WordLearningPage {
 
   async getMasteredCount() {
     const text = await this.masteredCount.textContent();
-    const match = text?.match(/已掌握:\s*(\d+)\s*\/\s*(\d+)/);
+    // New UI: "已掌握 X / Y" (space instead of colon)
+    const match = text?.match(/已掌握\s*(\d+)\s*\/\s*(\d+)/);
     if (match) {
       return { mastered: parseInt(match[1]), total: parseInt(match[2]) };
     }
@@ -240,7 +247,8 @@ export class AppHeader {
     this.page = page;
     this.title = page.getByRole('heading', { name: 'VocabMaster' });
     this.platform = page.getByText(/桌面版|Web/);
-    this.userName = page.getByText(/你好/);
+    // Updated to match new UI: username is shown directly, followed by "欢迎回来"
+    this.userName = page.locator('header').getByText(/^(test|user_.*)$/);
     this.logoutButton = page.getByRole('button', { name: '退出' });
   }
 

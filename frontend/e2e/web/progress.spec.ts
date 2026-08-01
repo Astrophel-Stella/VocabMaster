@@ -17,7 +17,7 @@ test.describe('Progress Statistics - REQ-UI-004 / REQ-PROG', () => {
     const wordLearningPage = new WordLearningPage(page);
     await wordLearningPage.expectLoaded();
 
-    // Get progress text
+    // Get progress text - new UI shows progress as styled numbers
     const progress = await wordLearningPage.getCurrentProgress();
     expect(progress).not.toBeNull();
     expect(progress!.current).toBe(1); // First word

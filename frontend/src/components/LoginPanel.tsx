@@ -117,104 +117,154 @@ export function LoginPanel() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">📚 VocabMaster</h1>
-          <p className="text-gray-600 mt-2">英语单词学习助手</p>
+    <div className="min-h-screen flex">
+      {/* Left side - Decorative */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 relative overflow-hidden">
+        {/* Decorative circles */}
+        <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-pink-300/20 rounded-full blur-2xl" />
+
+        <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-white">
+          <div className="text-8xl mb-6 animate-bounce">📚</div>
+          <h1 className="text-5xl font-bold mb-4 tracking-tight">VocabMaster</h1>
+          <p className="text-xl text-white/80 text-center max-w-md leading-relaxed">
+            科学记忆，高效学习<br />让每一个单词都刻在脑海
+          </p>
+          <div className="mt-12 flex items-center gap-8 text-white/70">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🎯</span>
+              <span className="text-sm">智能复习</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">📊</span>
+              <span className="text-sm">进度追踪</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🔊</span>
+              <span className="text-sm">发音训练</span>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">用户名</label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              required
-              disabled={isLoading}
-            />
+      {/* Right side - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center bg-gray-50 p-8">
+        <div className="w-full max-w-md">
+          {/* Mobile header */}
+          <div className="lg:hidden text-center mb-8">
+            <span className="text-6xl">📚</span>
+            <h1 className="text-3xl font-bold text-gray-900 mt-4">VocabMaster</h1>
+            <p className="text-gray-500 mt-2">英语单词学习助手</p>
           </div>
 
-          {!isLoginMode && (
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                required
+          {/* Login Card */}
+          <div className="bg-white rounded-3xl shadow-lg shadow-gray-200/50 p-8">
+            <div className="hidden lg:block mb-8">
+              <h2 className="text-2xl font-bold text-gray-900">欢迎回来</h2>
+              <p className="text-gray-500 mt-1">登录开始你的学习之旅</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
+                  placeholder="请输入用户名"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+
+              {!isLoginMode && (
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
+                    placeholder="请输入邮箱地址"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
+                  placeholder="请输入密码"
+                  required
+                  disabled={isLoading}
+                  minLength={6}
+                />
+                {/* REQ-AUTH-006: 密码强度指示器 */}
+                {!isLoginMode && password && (
+                  <PasswordStrengthIndicator password={password} />
+                )}
+              </div>
+
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-100 rounded-xl">
+                  <p className="text-red-600 text-sm">{error}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
                 disabled={isLoading}
-              />
-            </div>
-          )}
+                className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-lg shadow-indigo-200/50 hover:shadow-xl hover:shadow-indigo-300/50 transform hover:-translate-y-0.5"
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    处理中...
+                  </span>
+                ) : (isLoginMode ? '登录' : '注册')}
+              </button>
+            </form>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">密码</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              required
-              disabled={isLoading}
-              minLength={6}
-            />
-            {/* REQ-AUTH-006: 密码强度指示器 */}
-            {!isLoginMode && password && (
-              <PasswordStrengthIndicator password={password} />
-            )}
-          </div>
-
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-          >
-            {isLoading ? '处理中...' : (isLoginMode ? '登录' : '注册')}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center space-y-2">
-          <button
-            onClick={() => {
-              setIsLoginMode(!isLoginMode);
-              clearError();
-            }}
-            className="text-indigo-600 hover:text-indigo-700 text-sm"
-          >
-            {isLoginMode ? '没有账号？点击注册' : '已有账号？点击登录'}
-          </button>
-          {isLoginMode && (
-            <div>
+            <div className="mt-6 space-y-3">
               <button
                 onClick={() => {
-                  window.history.pushState({}, '', '/forgot-password');
-                  window.dispatchEvent(new PopStateEvent('popstate'));
+                  setIsLoginMode(!isLoginMode);
+                  clearError();
                 }}
-                className="text-gray-500 hover:text-gray-700 text-sm"
+                className="w-full text-center text-indigo-600 hover:text-indigo-700 text-sm font-medium py-2 rounded-lg hover:bg-indigo-50 transition-colors"
               >
-                忘记密码？
+                {isLoginMode ? '没有账号？立即注册' : '已有账号？返回登录'}
               </button>
+              {isLoginMode && (
+                <button
+                  onClick={() => {
+                    window.history.pushState({}, '', '/forgot-password');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
+                  className="w-full text-center text-gray-400 hover:text-gray-600 text-sm py-2 transition-colors"
+                >
+                  忘记密码？
+                </button>
+              )}
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* 测试账号提示 */}
-        <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-blue-800 text-xs">
-            💡 测试账号: test / Password123
+          {/* Footer */}
+          <p className="text-center text-gray-400 text-xs mt-8">
+            © 2026 VocabMaster. Made with ❤️ for learners.
           </p>
         </div>
       </div>

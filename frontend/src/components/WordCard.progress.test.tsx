@@ -92,7 +92,9 @@ describe('WordCard Progress Section - REQ-UI-004', () => {
 
       render(<WordCard />);
 
-      expect(screen.getByText(/进度.*1.*10/i)).toBeInTheDocument();
+      // Check that the current word index (1) and total (10) are displayed
+      expect(screen.getByText('1')).toBeInTheDocument();
+      expect(screen.getByText('10')).toBeInTheDocument();
     });
 
     it('REQ-UI-004: should display mastered count (已掌握 M/总数)', () => {

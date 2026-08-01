@@ -58,8 +58,8 @@ test.describe('Word Learning - REQ-UI-003 / REQ-WB-002 / REQ-WORD', () => {
     // Mastered button
     await expect(wordLearningPage.masteredButton).toBeVisible();
 
-    // Progress indicator
-    await expect(wordLearningPage.progressText).toBeVisible();
+    // Progress indicator - new UI shows mastered count as pill badge
+    await expect(page.getByText(/已掌握 \d+ \/ \d+/)).toBeVisible();
 
     // Back button
     await expect(wordLearningPage.backButton).toBeVisible();

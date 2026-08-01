@@ -41,7 +41,9 @@ describe('LoginPanel Component - REQ-UI-001', () => {
     it('REQ-UI-001: should display login form by default', () => {
       render(<LoginPanel />);
 
-      expect(screen.getByRole('heading', { name: /vocabmaster/i })).toBeInTheDocument();
+      // There are multiple headings with VocabMaster (decorative left panel + form title)
+      const headings = screen.getAllByRole('heading', { name: /vocabmaster/i });
+      expect(headings.length).toBeGreaterThan(0);
       expect(screen.getByText(/用户名/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/密码/i)).toBeInTheDocument();
       expect(screen.queryByText(/邮箱/i)).not.toBeInTheDocument();
@@ -348,11 +350,10 @@ describe('LoginPanel Component - REQ-UI-001', () => {
   });
 
   describe('REQ-UI-001: Test Account Hint', () => {
-    it('REQ-UI-001: should display test account hint', () => {
+    it('REQ-UI-001: should NOT display test account hint (removed per requirements)', () => {
       render(<LoginPanel />);
 
-      expect(screen.getByText(/测试账号/i)).toBeInTheDocument();
-      expect(screen.getByText(/test.*Password123/i)).toBeInTheDocument();
+      expect(screen.queryByText(/测试账号/i)).not.toBeInTheDocument();
     });
   });
 
