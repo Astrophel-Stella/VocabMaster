@@ -147,6 +147,23 @@ jobs:
               labels: ['✅ quality-passed']
             })
 
+      # 事件驱动自动化: CI 全绿 → webhook 唤起「AI 代码审查助手」做深度预审
+      # (GitOps 标准: CI 状态变化 → webhook → 触发下游智能体, 零人工 @)
+      # URL 存于 GitHub Secret, 不明文出现; 载荷带 PR 号供智能体定位
+      - name: Trigger AI deep pre-review (autopilot)
+        if: success()
+        env:
+          REVIEW_URL: ${{ secrets.AUTOPILOT_REVIEW_URL }}
+        run: |
+          if [ -z "$REVIEW_URL" ]; then
+            echo "⚠️ AUTOPILOT_REVIEW_URL 未配置, 跳过 (不阻塞流水线)"; exit 0
+          fi
+          curl -sS -X POST "$REVIEW_URL" \
+            -H "Content-Type: application/json" \
+            -H "Idempotency-Key: review-${{ github.event.pull_request.number }}-${{ github.sha }}" \
+            -d '{"event":"quality-passed","pr_number":${{ github.event.pull_request.number }},"repo":"${{ github.repository }}","sha":"${{ github.sha }}"}' \
+            || echo "⚠️ 预审 webhook 调用失败, 不阻塞流水线 (人类仍可手动审核)"
+
       - name: Label PR - Quality Failed
         if: failure()
         uses: actions/github-script@v7
@@ -163,8 +180,23 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `## ❌ 质量门禁未通过\n\n请查看上方日志修复问题。\n\n修复后重新push代码，流水线会自动重新运行。`
+              body: `## ❌ 质量门禁未通过\n\n软件工程师将被自动唤起定位并修复 (事件驱动)。\n\n如需人工介入, 可在本 PR 留言。`
             })
+
+      # 事件驱动自动化: CI 失败 → webhook 唤起「软件工程师」自动修复
+      - name: Trigger self-heal (autopilot)
+        if: failure()
+        env:
+          FIX_URL: ${{ secrets.AUTOPILOT_FIX_URL }}
+        run: |
+          if [ -z "$FIX_URL" ]; then
+            echo "⚠️ AUTOPILOT_FIX_URL 未配置, 跳过 (不阻塞流水线)"; exit 0
+          fi
+          curl -sS -X POST "$FIX_URL" \
+            -H "Content-Type: application/json" \
+            -H "Idempotency-Key: fix-${{ github.event.pull_request.number }}-${{ github.sha }}" \
+            -d '{"event":"quality-failed","pr_number":${{ github.event.pull_request.number }},"repo":"${{ github.repository }}","sha":"${{ github.sha }}"}' \
+            || echo "⚠️ 自修复 webhook 调用失败, 不阻塞流水线 (人类可手动介入)"
 
   # ═══════════════════════════════════════════════════════════════
   # 阶段2: AI 预审 (advisory) + 请求人类审核
@@ -184,7 +216,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `## 📋 CI 全绿，进入审核阶段\n\n### AI 代码审查助手预审清单 (advisory，仅供参考)\n\n- [ ] 配置一致性 (无硬编码 host/URL，生产无 localhost)\n- [ ] 测试充分 (E2E 用生产配置，覆盖率≥70%，bug 有复现测试)\n- [ ] 代码质量 (无吞异常/@ts-ignore/删断言作弊)\n- [ ] 架构合理 + 安全 (权限/token 有效期/敏感信息)\n\n### 确定性门禁结果\n\n- ✅ Lint / TypeCheck 通过\n- ✅ 单元 / 集成测试通过\n- ✅ E2E 测试通过 (生产配置)\n- ✅ 覆盖率达标\n\n---\n\n⚠️ **合并闸口是人类，不是 AI**。\n请人类审核者看完预审报告后，**亲手点绿色 "Merge" 按钮** 合并到 master。\nAI/流水线不会自动合并 —— 合并这一下只有你能点。`
+              body: `## 📋 CI 全绿，进入审核阶段\n\n**AI 代码审查助手已被自动唤起**，正在对本次改动做深度预审（advisory），稍后会在本 PR 追加一条结构化预审报告。\n\n### 确定性门禁结果\n\n- ✅ Lint / TypeCheck 通过\n- ✅ 单元 / 集成测试通过\n- ✅ E2E 测试通过 (生产配置)\n- ✅ 覆盖率达标\n\n---\n\n⚠️ **合并闸口是人类，不是 AI**。\n请人类审核者看完 AI 深度预审报告后，**亲手点绿色 "Merge" 按钮** 合并到 master。\nAI/流水线不会自动合并 —— 合并这一下只有你能点。`
             })
 
   # ═══════════════════════════════════════════════════════════════
