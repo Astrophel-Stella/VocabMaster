@@ -323,7 +323,8 @@ test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
 
       // Should succeed and redirect to word bank selection
       await expect(page.getByRole('heading', { name: '选择词库' })).toBeVisible({ timeout: 10000 });
-      await expect(page.getByText(`你好, ${uniqueUsername}`)).toBeVisible();
+      // Updated to match new UI: username shown with "欢迎回来" below it
+      await expect(page.locator('header').getByText(uniqueUsername)).toBeVisible();
     });
 
     test('REQ-AUTH-006: Strength indicator updates in real-time', async ({ page }) => {

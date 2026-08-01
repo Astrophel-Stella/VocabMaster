@@ -148,7 +148,7 @@ export function WordCard() {
 
         {/* Meaning */}
         <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl p-6 mb-8 border border-gray-100">
-          <p className="text-lg md:text-xl text-gray-800 leading-relaxed">{currentWord.meaning}</p>
+          <p data-testid="word-meaning" className="text-lg md:text-xl text-gray-800 leading-relaxed">{currentWord.meaning}</p>
         </div>
 
         {/* Example Sentence */}
@@ -181,6 +181,7 @@ export function WordCard() {
             <button
               onClick={handleToggleMastered}
               disabled={isProgressLoading}
+              aria-pressed={isMastered}
               className={`px-6 py-3.5 rounded-xl font-medium transition-all flex items-center gap-2 ${
                 isMastered
                   ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-200/50'

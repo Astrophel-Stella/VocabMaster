@@ -121,8 +121,8 @@ export class WordLearningPage {
     this.wordSpelling = page.getByTestId('word-spelling');
     // Phonetic: 定位到拼写区域下方的音标 <p>（灰色斜杠包裹文本）
     this.wordPhonetic = page.getByTestId('word-spelling').locator('../..').locator('p').filter({ hasText: /^\/.*\/$/ });
-    // Meaning: the main content in the gray box
-    this.wordMeaning = page.locator('[class*="bg-gray-50"] p').first();
+    // Meaning: the main content in the gray box (use data-testid for stability)
+    this.wordMeaning = page.getByTestId('word-meaning');
     this.wordExample = page.getByText('例句:');
     this.prevButton = page.getByRole('button', { name: '上一个' });
     this.nextButton = page.getByRole('button', { name: '下一个' });
@@ -165,10 +165,9 @@ export class WordLearningPage {
   }
 
   async isMastered() {
-    // Mastered state renders "✓ 已掌握"; the un-mastered state renders
-    // "○ 标记已掌握" — both contain "已掌握", so key off the ✓ / 标记 marker.
-    const text = await this.masteredButton.textContent();
-    return text?.includes('✓') || false;
+    // Use aria-pressed attribute which is more reliable than text content
+    const pressed = await this.masteredButton.getAttribute('aria-pressed');
+    return pressed === 'true';
   }
 
   async expectPrevDisabled() {
