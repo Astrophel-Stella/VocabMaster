@@ -4,7 +4,7 @@
  */
 
 import { test, expect, Page, Locator } from '@playwright/test';
-import { LoginPage, loginAsTestUser } from '../shared/utils';
+import { LoginPage, AppHeader, loginAsTestUser } from '../shared/utils';
 
 test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
 
@@ -18,8 +18,8 @@ test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
     await expect(loginPage.submitButton).toBeVisible();
     await expect(loginPage.toggleModeButton).toBeVisible();
 
-    // Verify test account hint is visible
-    await expect(loginPage.testAccountHint).toBeVisible();
+    // Verify test account hint is NOT visible (removed in UI beautification)
+    await expect(loginPage.testAccountHint).not.toBeVisible();
   });
 
   test('REQ-AUTH-001: Login/Register mode switch works', async ({ page }) => {
@@ -68,8 +68,9 @@ test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
     // Wait for redirect and verify we're on the word bank selection page
     await expect(page.getByRole('heading', { name: '选择词库' })).toBeVisible({ timeout: 10000 });
 
-    // Verify user is logged in (header shows username)
-    await expect(page.getByText('你好, test')).toBeVisible();
+    // Verify user is logged in (header shows username directly, followed by "欢迎回来")
+    const header = new AppHeader(page);
+    await header.expectLoggedIn('test');
   });
 
   test('REQ-AUTH-004: Wrong password shows correct error message', async ({ page }) => {
@@ -167,7 +168,8 @@ test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
 
     // Should auto-login and redirect to word bank selection
     await expect(page.getByRole('heading', { name: '选择词库' })).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(`你好, ${uniqueUsername}`)).toBeVisible();
+    const header = new AppHeader(page);
+    await header.expectLoggedIn(uniqueUsername);
   });
 
   // REQ-AUTH-006: Password Strength Validation E2E Tests
@@ -538,7 +540,9 @@ test.describe('Authentication - REQ-UI-001 / REQ-AUTH', () => {
 
       // Should navigate back to login page
       await expect(page.getByRole('heading', { name: 'VocabMaster' })).toBeVisible();
-      await expect(page.getByText('英语单词学习助手')).toBeVisible();
+      // Verify login form is visible (username input is a stable indicator)
+      const loginPage = new LoginPage(page);
+      await expect(loginPage.usernameInput).toBeVisible();
     });
   });
 });

@@ -22,17 +22,18 @@ test.describe('Word Bank Selection - REQ-UI-002 / REQ-WB-001', () => {
     // Bank 1: 高考英语
     await wordBankPage.expectBankVisible('高考英语');
     const bank1 = page.getByRole('button', { name: /高考英语/ });
-    await expect(bank1.getByText(/个单词/)).toBeVisible();
+    // New UI: shows "X 词" instead of "X 个单词"
+    await expect(bank1.getByText(/词$/)).toBeVisible();
 
     // Bank 2: 考研英语
     await wordBankPage.expectBankVisible('考研英语');
     const bank2 = page.getByRole('button', { name: /考研英语/ });
-    await expect(bank2.getByText(/个单词/)).toBeVisible();
+    await expect(bank2.getByText(/词$/)).toBeVisible();
 
     // Bank 3: 生活英语
     await wordBankPage.expectBankVisible('生活英语');
     const bank3 = page.getByRole('button', { name: /生活英语/ });
-    await expect(bank3.getByText(/个单词/)).toBeVisible();
+    await expect(bank3.getByText(/词$/)).toBeVisible();
   });
 
   test('REQ-WB-001: Word bank names and descriptions are correct', async ({ page }) => {
@@ -69,7 +70,8 @@ test.describe('Word Bank Selection - REQ-UI-002 / REQ-WB-001', () => {
     await expect(page.getByTestId('word-spelling')).toBeVisible({ timeout: 10000 });
 
     // Verify we're on the word learning page by checking for word card elements
-    await expect(page.getByText(/进度:/)).toBeVisible();
+    // New UI: mastered count shows "已掌握 X / Y"
+    await expect(page.getByText(/已掌握 \d+ \/ \d+/)).toBeVisible();
     await expect(page.getByRole('button', { name: '返回' })).toBeVisible();
   });
 
@@ -100,7 +102,7 @@ test.describe('Word Bank Selection - REQ-UI-002 / REQ-WB-001', () => {
     await loginPage.goto();
     await loginPage.login('test', '123456');
 
-    // Wait for error message to appear
-    await expect(page.locator('[class*="bg-red-50"] p')).toBeVisible({ timeout: 10000 });
+    // Wait for error message to appear - use more specific selector to avoid strict mode violation
+    await expect(page.locator('.bg-red-50.border-red-200 p').first()).toBeVisible({ timeout: 10000 });
   });
 });
