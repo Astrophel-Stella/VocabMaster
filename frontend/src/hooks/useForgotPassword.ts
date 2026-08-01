@@ -7,9 +7,14 @@ import { useState } from 'react';
 import { apiFetch } from '../adapters';
 
 // 从环境变量获取 API 地址
-const API_BASE = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}/api`
-  : 'http://localhost:8000/api';
+// VITE_API_URL="" (空字符串) → 使用相对 URL /api（nginx 反代）
+// VITE_API_URL 有值 → 使用该值 + /api
+// VITE_API_URL 未设置 → 默认本地开发地址
+const API_BASE = import.meta.env.VITE_API_URL !== undefined
+  ? (import.meta.env.VITE_API_URL === ''
+      ? '/api'  // 生产环境：nginx 同域反代
+      : `${import.meta.env.VITE_API_URL}/api`)  // 指定 API 地址
+  : 'http://localhost:8000/api';  // 开发环境默认
 
 /**
  * 发送密码重置邮件
