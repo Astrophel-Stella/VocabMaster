@@ -266,7 +266,7 @@ describe('App Integration - Full User Flow', () => {
       render(<App />);
 
       await waitFor(() => {
-        expect(screen.getByText(/你好.*test/i)).toBeInTheDocument();
+        expect(screen.getByText('test')).toBeInTheDocument();
       });
 
       // Click logout button

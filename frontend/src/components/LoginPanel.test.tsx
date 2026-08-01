@@ -348,11 +348,10 @@ describe('LoginPanel Component - REQ-UI-001', () => {
   });
 
   describe('REQ-UI-001: Test Account Hint', () => {
-    it('REQ-UI-001: should display test account hint', () => {
+    it('REQ-UI-001: should NOT display test account hint (removed per requirements)', () => {
       render(<LoginPanel />);
 
-      expect(screen.getByText(/测试账号/i)).toBeInTheDocument();
-      expect(screen.getByText(/test.*Password123/i)).toBeInTheDocument();
+      expect(screen.queryByText(/测试账号/i)).not.toBeInTheDocument();
     });
   });
 

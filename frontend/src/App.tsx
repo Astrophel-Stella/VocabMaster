@@ -75,27 +75,32 @@ export default function App() {
   // Show word bank selection if no bank selected
   if (!selectedWordBank) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <header className="bg-white shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📚</span>
-              <h1 className="text-xl font-bold text-gray-900">VocabMaster</h1>
-              <span className="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-600">
-                {platform === 'tauri' ? '桌面版' : 'Web'} · v1.0
-              </span>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200/50">
+                <span className="text-xl">📚</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">VocabMaster</h1>
+                <span className="text-xs text-gray-400">{platform === 'tauri' ? '桌面版' : 'Web'} · v1.0</span>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">你好, {user?.username}</span>
+            <div className="flex items-center gap-3">
+              <div className="text-right mr-2">
+                <span className="text-sm font-medium text-gray-700">{user?.username}</span>
+                <p className="text-xs text-gray-400">欢迎回来</p>
+              </div>
               <button
                 onClick={() => setShowChangePassword(true)}
-                className="text-sm px-4 py-2 rounded-lg text-indigo-600 hover:bg-indigo-50 border border-indigo-200"
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
               >
                 修改密码
               </button>
               <button
                 onClick={handleLogout}
-                className="text-sm px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 border border-gray-200"
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-all shadow-sm"
               >
                 退出
               </button>
@@ -105,13 +110,13 @@ export default function App() {
         <WordBankSelect />
         {/* Change Password Modal */}
         {showChangePassword && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-              <div className="flex items-center justify-between p-4 border-b">
-                <h2 className="text-lg font-semibold text-gray-900">修改密码</h2>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+              <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50">
+                <h2 className="text-lg font-bold text-gray-900">修改密码</h2>
                 <button
                   onClick={() => setShowChangePassword(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                 >
                   ✕
                 </button>
@@ -126,51 +131,60 @@ export default function App() {
 
   // Show word learning card
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => reset()}
-              className="text-gray-400 hover:text-gray-600 mr-2"
+              className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-all text-sm font-medium"
             >
-              ← 返回
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              返回
             </button>
-            <span className="text-2xl">📚</span>
-            <h1 className="text-xl font-bold text-gray-900">VocabMaster</h1>
-            <span className="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-600">
-              {selectedWordBank.name}
-            </span>
+            <div className="w-px h-6 bg-gray-200" />
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200/50">
+              <span className="text-xl">📚</span>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">VocabMaster</h1>
+              <span className="text-xs text-gray-400">{selectedWordBank.name}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">你好, {user?.username}</span>
+          <div className="flex items-center gap-3">
+            <div className="text-right mr-2">
+              <span className="text-sm font-medium text-gray-700">{user?.username}</span>
+              <p className="text-xs text-gray-400">学习中...</p>
+            </div>
             <button
               onClick={() => setShowChangePassword(true)}
-              className="text-sm px-4 py-2 rounded-lg text-indigo-600 hover:bg-indigo-50 border border-indigo-200"
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
             >
               修改密码
             </button>
             <button
               onClick={handleLogout}
-              className="text-sm px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 border border-gray-200"
+              className="px-4 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-all shadow-sm"
             >
               退出
             </button>
           </div>
         </div>
       </header>
-      <main className="py-6">
+      <main className="py-8">
         <WordCard />
       </main>
       {/* Change Password Modal */}
       {showChangePassword && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">修改密码</h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50">
+              <h2 className="text-lg font-bold text-gray-900">修改密码</h2>
               <button
                 onClick={() => setShowChangePassword(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
               >
                 ✕
               </button>

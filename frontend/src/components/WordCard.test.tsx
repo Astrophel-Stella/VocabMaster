@@ -396,7 +396,7 @@ describe('WordCard Component - REQ-UI-003', () => {
       // Check for playing state (animate-pulse)
       const buttons = screen.getAllByRole('button');
       const playingButton = buttons.find(btn =>
-        btn.className.includes('animate-pulse') && btn.className.includes('rounded-full')
+        btn.className.includes('animate-pulse') && btn.className.includes('rounded-xl')
       );
       expect(playingButton).toBeTruthy();
     });

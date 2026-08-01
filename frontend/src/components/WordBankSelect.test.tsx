@@ -76,7 +76,7 @@ describe('WordBankSelect Component - REQ-UI-002', () => {
       render(<WordBankSelect />);
 
       expect(screen.getByText('高考英语核心词汇')).toBeInTheDocument();
-      expect(screen.getByText(/3500.*单词/i)).toBeInTheDocument();
+      expect(screen.getByText(/3500.*词/i)).toBeInTheDocument();
     });
   });
 
