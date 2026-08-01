@@ -163,7 +163,9 @@ describe('App Integration - Full User Flow', () => {
     it('REQ-UI-001: should show login panel when not authenticated', () => {
       render(<App />);
 
-      expect(screen.getByRole('heading', { name: /vocabmaster/i })).toBeInTheDocument();
+      // Use getAllByRole since there are multiple headings with VocabMaster
+      const headings = screen.getAllByRole('heading', { name: /vocabmaster/i });
+      expect(headings.length).toBeGreaterThan(0);
       expect(screen.getByRole('button', { name: /登录/i })).toBeInTheDocument();
     });
 
@@ -265,6 +267,7 @@ describe('App Integration - Full User Flow', () => {
       const user = userEvent.setup();
       render(<App />);
 
+      // Wait for the username to appear (the new UI shows username + "欢迎回来")
       await waitFor(() => {
         expect(screen.getByText('test')).toBeInTheDocument();
       });
@@ -272,9 +275,10 @@ describe('App Integration - Full User Flow', () => {
       // Click logout button
       await user.click(screen.getByRole('button', { name: /退出/i }));
 
-      // Should show login panel again
+      // Should show login panel again - use getAllByRole since there are multiple headings
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: /vocabmaster/i })).toBeInTheDocument();
+        const headings = screen.getAllByRole('heading', { name: /vocabmaster/i });
+        expect(headings.length).toBeGreaterThan(0);
       });
     });
   });
@@ -294,8 +298,9 @@ describe('App Integration - Full User Flow', () => {
       render(<App />);
 
       // Should NOT show login panel (already authenticated)
+      // The new UI shows the username + "欢迎回来"
       await waitFor(() => {
-        expect(screen.getByText(/你好.*test/i)).toBeInTheDocument();
+        expect(screen.getByText('test')).toBeInTheDocument();
       });
 
       expect(screen.queryByRole('button', { name: /登录/i })).not.toBeInTheDocument();
