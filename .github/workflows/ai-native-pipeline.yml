@@ -299,9 +299,27 @@ jobs:
                 fi
               done
 
+              # SOU-41: 部署前回收磁盘空间。生产机每次 build --no-cache 都会
+              # 堆积悬空镜像/层，小盘 VM 很容易被填满，导致容器首次写 SQLite
+              # （17k 行 INSERT）时 "database or disk is full" 秒崩、init_db 退出。
+              # 只清理未被引用的镜像/缓存，绝不加 --volumes（会删 backend-data 数据卷）。
+              echo "🧹 回收磁盘空间（清理悬空镜像/构建缓存，不动数据卷）"
+              df -h / || true
+              docker system prune -af || true
+              df -h / || true
+
               # SOU-38: --remove-orphans 清理不在 compose 文件中的孤立容器
               echo "🚀 滚动更新部署（含孤立容器清理）"
-              docker compose -f docker-compose.prod.yml up -d --remove-orphans || { echo "❌ 容器启动失败"; DEPLOY_FAILED=1; }
+              # SOU-41: up 失败时立即抓后端容器日志。compose up -d 不会把容器
+              # stdout/stderr 打进 Actions 日志，导致 init_db 的真实 traceback
+              # 此前完全不可见（本次宕机排障最大盲点）。退出的容器在被移除前仍可读日志。
+              if ! docker compose -f docker-compose.prod.yml up -d --remove-orphans; then
+                echo "❌ 容器启动失败，抓取诊断日志："
+                docker compose -f docker-compose.prod.yml ps 2>&1 || true
+                echo "----- backend 日志（前 150 行）-----"
+                docker compose -f docker-compose.prod.yml logs --tail=150 backend 2>&1 || true
+                DEPLOY_FAILED=1
+              fi
             fi
 
             if [ $DEPLOY_FAILED -eq 0 ]; then
@@ -313,7 +331,10 @@ jobs:
               if curl -sf http://localhost:8000/health; then
                 echo "✅ 后端健康检查通过"
               else
-                echo "❌ 后端健康检查失败"
+                echo "❌ 后端健康检查失败，抓取诊断日志："
+                docker compose -f docker-compose.prod.yml ps 2>&1 || true
+                echo "----- backend 日志（前 150 行）-----"
+                docker compose -f docker-compose.prod.yml logs --tail=150 backend 2>&1 || true
                 DEPLOY_FAILED=1
               fi
             fi
@@ -439,6 +460,20 @@ jobs:
             SMOKE_FAILED=1
           fi
 
+          # 测试6: SOU-41 内容级 - 词库真实填充（防 seed 静默降级/假绿）
+          # 生产 bug 根因就是 seed 未把真实词表写入，前端"只有几个词"。
+          # 断言至少一个词库 total_words >= 1000，否则判为部署内容降级 → 失败 → 触发回滚。
+          echo "📋 验证词库已填充真实词表..."
+          BANKS_JSON=$(curl -s http://${{ secrets.PROD_HOST }}:8000/api/word-banks || echo "")
+          MAX_WORDS=$(echo "$BANKS_JSON" | grep -oP '"total_words"\s*:\s*\K[0-9]+' | sort -n | tail -1)
+          MAX_WORDS=${MAX_WORDS:-0}
+          if [ "$MAX_WORDS" -ge 1000 ]; then
+            echo "✅ 词库已填充真实词表（最大词库 ${MAX_WORDS} 词）"
+          else
+            echo "❌ 词库未正确填充（最大词库仅 ${MAX_WORDS} 词，疑似 seed 失败/降级）"
+            SMOKE_FAILED=1
+          fi
+
           # 汇总结果
           if [ $SMOKE_FAILED -eq 1 ]; then
             echo "smoke_status=failed" >> $GITHUB_OUTPUT
@@ -474,6 +509,7 @@ jobs:
       # 失败时真正执行 SSH 回滚，而不是只发评论
       # ═══════════════════════════════════════════════════════════════
       - name: Rollback on Failure
+        id: rollback
         if: failure()
         run: |
           echo "🔄 执行回滚..."
@@ -538,6 +574,7 @@ jobs:
             echo "❌ 回滚失败，需要人工介入"
             ROLLBACK_STATUS="回滚失败，请人工检查"
           fi
+          fi  # 闭合外层 if [ -z "$LAST_GOOD_SHA" ]（缺失此行导致 "line 66: unexpected end of file"，回滚从未执行）
 
           # 将回滚状态保存供下一步使用
           echo "rollback_status=${ROLLBACK_STATUS}" >> $GITHUB_OUTPUT
