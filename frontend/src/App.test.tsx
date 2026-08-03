@@ -22,6 +22,7 @@ vi.mock('./lib/api', () => ({
   getWords: vi.fn(),
   getProgress: vi.fn(),
   getProgressStats: vi.fn(),
+  getProgressOverview: vi.fn(),
   login: vi.fn(),
   register: vi.fn(),
   getCurrentUser: vi.fn(),

@@ -349,7 +349,6 @@ class TestProgressStats:
         assert data["progress_percentage"] == 30.0
 
     def test_REQ_PROG_004_get_progress_stats_zero_words(self, client: TestClient, db_session: Session):
-        """REQ-PROG-004: Getting stats for empty word bank should return zeros"""
         # Create test user
         user = User(
             username="test8",
@@ -382,3 +381,121 @@ class TestProgressStats:
         assert data["total_words"] == 0
         assert data["mastered_words"] == 0
         assert data["progress_percentage"] == 0.0
+
+
+class TestProgressOverview:
+    """Tests for REQ-UI-005: Overall learning progress overview (home page Hero)"""
+
+    def _make_user_and_login(self, client, db_session, username):
+        user = User(
+            username=username,
+            email=f"{username}@example.com",
+            hashed_password=get_password_hash("123456")
+        )
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
+
+        login_response = client.post(
+            "/api/auth/login",
+            data={"username": username, "password": "123456"}
+        )
+        token = login_response.json()["access_token"]
+        return user, token
+
+    def test_REQ_UI_005_overview_aggregates_across_banks(self, client: TestClient, db_session: Session):
+        """REQ-UI-005: Overview sums words/mastered across ALL word banks for the user"""
+        user, token = self._make_user_and_login(client, db_session, "overview1")
+
+        # Two banks: bank A with 4 words, bank B with 6 words → 10 total, 2 banks
+        bank_a = WordBank(name="Bank A", description="A", total_words=4)
+        bank_b = WordBank(name="Bank B", description="B", total_words=6)
+        db_session.add_all([bank_a, bank_b])
+        db_session.commit()
+        db_session.refresh(bank_a)
+        db_session.refresh(bank_b)
+
+        words_a = [
+            Word(word_bank_id=bank_a.id, spelling=f"a{i}", meaning=f"m{i}", order_index=i)
+            for i in range(4)
+        ]
+        words_b = [
+            Word(word_bank_id=bank_b.id, spelling=f"b{i}", meaning=f"m{i}", order_index=i)
+            for i in range(6)
+        ]
+        db_session.add_all(words_a + words_b)
+        db_session.commit()
+
+        # Master 2 in bank A and 1 in bank B → 3 mastered / 10 total = 30%
+        db_session.add_all([
+            LearningProgress(user_id=user.id, word_id=words_a[0].id, is_mastered=True),
+            LearningProgress(user_id=user.id, word_id=words_a[1].id, is_mastered=True),
+            LearningProgress(user_id=user.id, word_id=words_b[0].id, is_mastered=True),
+        ])
+        db_session.commit()
+
+        response = client.get(
+            "/api/progress/overview",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_words"] == 10
+        assert data["mastered_words"] == 3
+        assert data["progress_percentage"] == 30.0
+        assert data["total_banks"] == 2
+
+    def test_REQ_UI_005_overview_is_per_user(self, client: TestClient, db_session: Session):
+        """REQ-UI-005: One user's mastered words must not count toward another user's overview"""
+        user_a, token_a = self._make_user_and_login(client, db_session, "overview_a")
+        user_b, _ = self._make_user_and_login(client, db_session, "overview_b")
+
+        bank = WordBank(name="Shared Bank", description="S", total_words=2)
+        db_session.add(bank)
+        db_session.commit()
+        db_session.refresh(bank)
+
+        words = [
+            Word(word_bank_id=bank.id, spelling=f"w{i}", meaning=f"m{i}", order_index=i)
+            for i in range(2)
+        ]
+        db_session.add_all(words)
+        db_session.commit()
+
+        # user_b masters both words; user_a masters none
+        db_session.add_all([
+            LearningProgress(user_id=user_b.id, word_id=words[0].id, is_mastered=True),
+            LearningProgress(user_id=user_b.id, word_id=words[1].id, is_mastered=True),
+        ])
+        db_session.commit()
+
+        response = client.get(
+            "/api/progress/overview",
+            headers={"Authorization": f"Bearer {token_a}"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_words"] == 2
+        assert data["mastered_words"] == 0
+        assert data["progress_percentage"] == 0.0
+        assert data["total_banks"] == 1
+
+    def test_REQ_UI_005_overview_empty_library(self, client: TestClient, db_session: Session):
+        """REQ-UI-005: With no banks/words, overview returns zeros (no divide-by-zero)"""
+        _, token = self._make_user_and_login(client, db_session, "overview_empty")
+
+        response = client.get(
+            "/api/progress/overview",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_words"] == 0
+        assert data["mastered_words"] == 0
+        assert data["progress_percentage"] == 0.0
+        assert data["total_banks"] == 0
+
+    def test_REQ_UI_005_overview_requires_auth(self, client: TestClient, db_session: Session):
+        """REQ-UI-005: Overview requires authentication"""
+        response = client.get("/api/progress/overview")
+        assert response.status_code == 401
