@@ -86,3 +86,14 @@ ALTER TABLE words ADD COLUMN antonyms TEXT;    -- JSON 数组
 ## 相关决策
 - ADR-0007 SQLite —— 扩展字段沿用
 - ADR-0013 发音 —— 词库扩展后发音按钮覆盖更多单词
+
+## 更新：SOU-39 落地（2026-08-03）
+
+- 数据源采纳 **ECDICT（skywind3000/ECDICT，MIT）**，按考纲标签 `gk/ky/cet4/cet6` 生成
+  真实词库（高考≈3677、考研≈4801、四级≈3849、六级≈5407），释义为真实中文、`order_index`
+  按 ECDICT 词频高频优先。
+- 导入方式简化为 **数据文件驱动种子**：`scripts/build_wordbanks.py`（构建期）→
+  `backend/data/wordbanks/*.json`（入库）→ `backend/init_db.py` 幂等种子化，取代原"一次性
+  导入脚本"设想；运行时零网络依赖，CI/离线可复现。
+- 原示例词库（高考/考研/生活 7 词占位）被真实词库取代；相关前后端测试同 PR 更新。
+- 详见 REQ-SOU-39。

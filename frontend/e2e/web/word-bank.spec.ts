@@ -8,32 +8,23 @@ import { LoginPage, WordBankPage, loginAsTestUser } from '../shared/utils';
 
 test.describe('Word Bank Selection - REQ-UI-002 / REQ-WB-001', () => {
 
-  test('REQ-WB-001: Three word banks displayed with name/description/word count', async ({ page }) => {
+  test('REQ-WB-001: Four ECDICT word banks displayed with name/description/word count', async ({ page }) => {
     await loginAsTestUser(page);
 
     const wordBankPage = new WordBankPage(page);
     await wordBankPage.expectLoaded();
 
-    // Verify 3 word banks are displayed
+    // Verify the 4 real ECDICT word banks are displayed (SOU-39)
     const count = await wordBankPage.getBankCount();
-    expect(count).toBe(3);
+    expect(count).toBe(4);
 
-    // Verify each bank has required information
-    // Bank 1: 高考英语
-    await wordBankPage.expectBankVisible('高考英语');
-    const bank1 = page.getByRole('button', { name: /高考英语/ });
-    // New UI: shows "X 词" instead of "X 个单词"
-    await expect(bank1.getByText(/词$/)).toBeVisible();
-
-    // Bank 2: 考研英语
-    await wordBankPage.expectBankVisible('考研英语');
-    const bank2 = page.getByRole('button', { name: /考研英语/ });
-    await expect(bank2.getByText(/词$/)).toBeVisible();
-
-    // Bank 3: 生活英语
-    await wordBankPage.expectBankVisible('生活英语');
-    const bank3 = page.getByRole('button', { name: /生活英语/ });
-    await expect(bank3.getByText(/词$/)).toBeVisible();
+    // Verify each bank has required information (name + word count badge)
+    for (const name of ['高考英语', '考研英语', '四级英语', '六级英语']) {
+      await wordBankPage.expectBankVisible(name);
+      const bank = page.getByRole('button', { name: new RegExp(name) });
+      // New UI: shows "X 词" instead of "X 个单词"
+      await expect(bank.getByText(/词$/)).toBeVisible();
+    }
   });
 
   test('REQ-WB-001: Word bank names and descriptions are correct', async ({ page }) => {
@@ -42,17 +33,10 @@ test.describe('Word Bank Selection - REQ-UI-002 / REQ-WB-001', () => {
     const wordBankPage = new WordBankPage(page);
     await wordBankPage.expectLoaded();
 
-    // Verify bank 1 name and description
-    const bank1 = page.getByRole('button', { name: /高考英语/ });
-    await expect(bank1.getByRole('heading', { name: '高考英语' })).toBeVisible();
-
-    // Verify bank 2 name
-    const bank2 = page.getByRole('button', { name: /考研英语/ });
-    await expect(bank2.getByRole('heading', { name: '考研英语' })).toBeVisible();
-
-    // Verify bank 3 name
-    const bank3 = page.getByRole('button', { name: /生活英语/ });
-    await expect(bank3.getByRole('heading', { name: '生活英语' })).toBeVisible();
+    for (const name of ['高考英语', '考研英语', '四级英语', '六级英语']) {
+      const bank = page.getByRole('button', { name: new RegExp(name) });
+      await expect(bank.getByRole('heading', { name })).toBeVisible();
+    }
   });
 
   test('REQ-WB-001: Click word bank navigates to word learning page', async ({ page }) => {
@@ -73,6 +57,21 @@ test.describe('Word Bank Selection - REQ-UI-002 / REQ-WB-001', () => {
     // New UI: mastered count shows "已掌握 X / Y"
     await expect(page.getByText(/已掌握 \d+ \/ \d+/)).toBeVisible();
     await expect(page.getByRole('button', { name: '返回' })).toBeVisible();
+  });
+
+  test('REQ-WORD-001: Words are ordered by ECDICT frequency (高频词优先)', async ({ page }) => {
+    await loginAsTestUser(page);
+
+    const wordBankPage = new WordBankPage(page);
+    await wordBankPage.expectLoaded();
+
+    // Enter 高考英语 explicitly and check its first (highest-frequency) word.
+    await wordBankPage.selectBank('高考英语');
+    await expect(page.getByTestId('word-spelling')).toBeVisible({ timeout: 10000 });
+
+    const first = (await page.getByTestId('word-spelling').textContent())?.trim().toLowerCase();
+    // SOU-39: the most frequent 高考 word comes first (not alphabetical "abandon").
+    expect(['the', 'a', 'be', 'of', 'and', 'to', 'in']).toContain(first);
   });
 
   test('REQ-WB-001: Loading state shows spinner', async ({ page }) => {

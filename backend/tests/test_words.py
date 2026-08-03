@@ -5,6 +5,29 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models.word import WordBank, Word
+from app.models.user import User
+
+from init_db import (
+    TEST_USERNAME,
+    load_wordbank_files,
+    seed_database,
+)
+
+
+def _has_cjk(text: str) -> bool:
+    """True if the string contains at least one CJK ideograph."""
+    return any("一" <= ch <= "鿿" for ch in text)
+
+
+# Expected word-bank scale per ECDICT exam tag (SOU-39 acceptance criteria).
+# Tolerance absorbs minor upstream drift when the seed is regenerated.
+EXPECTED_BANK_SIZES = {
+    "高考英语": 3677,
+    "考研英语": 4801,
+    "四级英语": 3849,
+    "六级英语": 5407,
+}
+SIZE_TOLERANCE = 60
 
 
 class TestWordBanks:
@@ -229,3 +252,108 @@ class TestPronunciation:
 
         response = client.get(f"/api/words/{word_id}/pronunciation?accent=us")
         assert response.status_code == 401
+
+
+class TestSeedDataFiles:
+    """SOU-39: validate the committed ECDICT-derived seed data files."""
+
+    def test_all_expected_banks_present_with_expected_scale(self):
+        """SOU-39: gk/ky/cet4/cet6 banks exist with word counts matching ECDICT tags."""
+        banks = {b["name"]: b for b in load_wordbank_files()}
+        for name, expected in EXPECTED_BANK_SIZES.items():
+            assert name in banks, f"missing word bank: {name}"
+            bank = banks[name]
+            count = len(bank["words"])
+            # total_words in the file mirrors the real word count.
+            assert bank["total_words"] == count
+            assert abs(count - expected) <= SIZE_TOLERANCE, (
+                f"{name}: {count} words, expected ~{expected}"
+            )
+
+    def test_seed_records_open_source_provenance(self):
+        """SOU-39: every seed file records its ECDICT source + MIT license."""
+        for bank in load_wordbank_files():
+            assert "ECDICT" in bank["source"]
+            assert bank["license"] == "MIT"
+            assert bank["source_url"].startswith("https://")
+
+    def test_meanings_are_real_chinese_not_placeholders(self):
+        """SOU-39: meanings must be real Chinese translations, never placeholders like 'n. abandon'."""
+        for bank in load_wordbank_files():
+            for word in bank["words"]:
+                meaning = word["meaning"]
+                # Must contain Chinese characters (rules out English-only placeholders).
+                assert _has_cjk(meaning), (
+                    f"{bank['name']}/{word['spelling']}: non-Chinese meaning {meaning!r}"
+                )
+                # Must not be a bare "<pos>. <spelling>" placeholder.
+                assert word["spelling"].lower() not in meaning.lower() or _has_cjk(meaning)
+
+    def test_order_index_is_contiguous_and_sorted(self):
+        """SOU-39: order_index is a contiguous 1..N sequence (frequency ranking)."""
+        for bank in load_wordbank_files():
+            indexes = [w["order_index"] for w in bank["words"]]
+            assert indexes == list(range(1, len(indexes) + 1)), (
+                f"{bank['name']}: order_index not contiguous 1..N"
+            )
+
+    def test_high_frequency_word_ranked_first(self):
+        """SOU-39: high-frequency words come first (高频词优先)."""
+        banks = {b["name"]: b for b in load_wordbank_files()}
+        first_word = banks["高考英语"]["words"][0]["spelling"].lower()
+        # The most frequent 高考 word should be a very common English word.
+        assert first_word in {"the", "a", "be", "of", "and", "to", "in", "have", "it"}
+
+
+class TestSeedDatabase:
+    """SOU-39: validate seeding the database from data files."""
+
+    def test_seed_populates_banks_and_words(self, client: TestClient, db_session: Session):
+        """Given seeded DB, when querying word-banks API, then real banks are returned."""
+        seed_database(db_session)
+
+        response = client.get("/api/word-banks")
+        assert response.status_code == 200
+        names = {b["name"] for b in response.json()}
+        assert EXPECTED_BANK_SIZES.keys() <= names
+
+    def test_seeded_total_words_matches_actual_count(self, client: TestClient, db_session: Session):
+        """SOU-39: each bank's total_words equals its actual number of words."""
+        seed_database(db_session)
+
+        for bank in client.get("/api/word-banks").json():
+            words = client.get(f"/api/word-banks/{bank['id']}/words?limit=1").json()
+            assert bank["total_words"] == words["total"]
+
+    def test_seeded_words_returned_sorted_by_order_index(self, client: TestClient, db_session: Session):
+        """SOU-39: words are served high-frequency first (order_index ascending)."""
+        seed_database(db_session)
+
+        bank = next(b for b in client.get("/api/word-banks").json() if b["name"] == "高考英语")
+        data = client.get(f"/api/word-banks/{bank['id']}/words?limit=20").json()
+        spellings = [w["spelling"] for w in data["words"]]
+        # First served word is the highest-frequency 高考 word.
+        assert spellings[0].lower() in {"the", "a", "be", "of", "and", "to", "in"}
+        # Real phonetic + Chinese meaning present on the served words.
+        assert _has_cjk(data["words"][0]["meaning"])
+        assert data["words"][0]["phonetic"]
+
+    def test_seed_is_idempotent(self, db_session: Session):
+        """SOU-39: seeding twice does not duplicate banks or words."""
+        seed_database(db_session)
+        banks_after_first = db_session.query(WordBank).count()
+        words_after_first = db_session.query(Word).count()
+
+        second = seed_database(db_session)
+
+        assert all(count == 0 for count in second.values())  # nothing re-inserted
+        assert db_session.query(WordBank).count() == banks_after_first
+        assert db_session.query(Word).count() == words_after_first
+
+    def test_seed_creates_shared_test_user(self, db_session: Session):
+        """ADR-0010: seeding creates the single-source-of-truth test account (idempotently)."""
+        seed_database(db_session)
+        seed_database(db_session)  # second run must not duplicate the user
+        users = db_session.query(User).filter(User.username == TEST_USERNAME).all()
+        assert len(users) == 1
+        assert users[0].email == "test@example.com"

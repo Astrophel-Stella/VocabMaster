@@ -36,7 +36,10 @@ export default function App() {
   // We use selectedWordBank?.id (primitive value) instead of the object.
   useEffect(() => {
     if (selectedWordBank) {
-      loadWords(selectedWordBank.id, 0, 100);
+      // Load the whole bank so the in-memory word list matches total_words:
+      // prev/next boundaries, the "index / total" progress bar and the nav dots
+      // all stay consistent (otherwise "下一个" never disables on large banks).
+      loadWords(selectedWordBank.id, 0, selectedWordBank.total_words);
       if (isAuthenticated) {
         loadProgress(selectedWordBank.id);
       }

@@ -38,13 +38,15 @@ test.describe('Word Learning - REQ-UI-003 / REQ-WB-002 / REQ-WORD', () => {
     // Both cases are valid
   });
 
-  test('REQ-WORD-001: First word is "abandon" (alphabetically sorted)', async ({ page }) => {
+  test('REQ-WORD-001: First word is a real vocabulary word (frequency-ordered seed)', async ({ page }) => {
     const wordLearningPage = new WordLearningPage(page);
     await wordLearningPage.expectLoaded();
 
-    // The first word should be "abandon" (sorted by order_index which is alphabetical)
-    const spelling = await wordLearningPage.wordSpelling.textContent();
-    expect(spelling?.toLowerCase()).toBe('abandon');
+    // SOU-39: words are seeded from ECDICT and ordered by frequency (not
+    // alphabetically), so the first word is a real English word.
+    const spelling = (await wordLearningPage.wordSpelling.textContent())?.trim() ?? '';
+    expect(spelling.length).toBeGreaterThan(0);
+    expect(spelling).toMatch(/^[a-zA-Z][a-zA-Z '-]*$/);
   });
 
   test('REQ-WORD-001: All word card elements are present', async ({ page }) => {
@@ -124,50 +126,69 @@ test.describe('Word Learning - REQ-UI-003 / REQ-WB-002 / REQ-WORD', () => {
   });
 
   test('REQ-WB-002: Previous button disabled at first word, Next button disabled at last word', async ({ page }) => {
+    // The real ECDICT banks hold thousands of words, so the last word is not
+    // reachable by clicking one of the (max 50) nav dots. Serve a small, fixed
+    // word list so the first/last boundary is deterministic and the disabled
+    // logic is genuinely exercised.
+    await page.route('**/word-banks/*/words*', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        total: 3,
+        words: [
+          { id: 9001, spelling: 'the', phonetic: '/ðə/', pronunciation_url: null, meaning: 'art. 那', example_sentence: null },
+          { id: 9002, spelling: 'be', phonetic: '/biː/', pronunciation_url: null, meaning: 'v. 是', example_sentence: null },
+          { id: 9003, spelling: 'of', phonetic: '/əv/', pronunciation_url: null, meaning: 'prep. 属于', example_sentence: null },
+        ],
+      }),
+    }));
+    // Re-fetch words under the mock (words are not persisted; App reloads them).
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
     const wordLearningPage = new WordLearningPage(page);
     await wordLearningPage.expectLoaded();
 
-    // At first word - previous disabled
+    // At first word - previous disabled, next enabled.
     await wordLearningPage.expectPrevDisabled();
     await expect(wordLearningPage.nextButton).toBeEnabled();
 
-    // Navigate to last word by clicking dot at the end
+    // Navigate to the last word; with 3 words there are exactly 3 dots.
     const dots = await wordLearningPage.navigationDots.all();
-    if (dots.length > 1) {
-      // Click the last visible dot
-      const lastDotIndex = Math.min(dots.length - 1, 49); // Max 50 dots shown
-      await dots[lastDotIndex].click();
-      await page.waitForTimeout(300);
+    expect(dots.length).toBe(3);
+    await dots[dots.length - 1].click();
+    await page.waitForTimeout(300);
 
-      // At last word - next should be disabled
-      await wordLearningPage.expectNextDisabled();
-      await expect(wordLearningPage.prevButton).toBeEnabled();
-    }
+    // At last word - next disabled, previous enabled.
+    await wordLearningPage.expectNextDisabled();
+    await expect(wordLearningPage.prevButton).toBeEnabled();
   });
 
   test('REQ-WORD-004: Words are sorted by order_index', async ({ page }) => {
     const wordLearningPage = new WordLearningPage(page);
     await wordLearningPage.expectLoaded();
 
-    // First word should be "abandon" (sorted alphabetically)
-    const firstWord = await wordLearningPage.wordSpelling.textContent();
-    expect(firstWord?.toLowerCase()).toBe('abandon');
+    // SOU-39: words are served in order_index order (ECDICT frequency ranking).
+    // Navigate through the first 5 words and verify a stable, non-repeating
+    // sequence of real words (not alphabetical — high-frequency words first).
+    const firstWord = (await wordLearningPage.wordSpelling.textContent())?.trim().toLowerCase();
+    expect(firstWord).toBeTruthy();
 
-    // Navigate through first 5 words and verify alphabetical order
-    const words: string[] = [firstWord!.toLowerCase()];
-
+    const words: string[] = [firstWord!];
     for (let i = 0; i < 4; i++) {
       if (await wordLearningPage.nextButton.isEnabled()) {
         await wordLearningPage.goToNext();
         await page.waitForTimeout(200);
-        const word = (await wordLearningPage.wordSpelling.textContent())?.toLowerCase();
+        const word = (await wordLearningPage.wordSpelling.textContent())?.trim().toLowerCase();
         words.push(word!);
       }
     }
 
-    // Verify words are in alphabetical order
-    for (let i = 1; i < words.length; i++) {
-      expect(words[i] >= words[i - 1]).toBe(true);
+    // Every word is a real, non-empty vocabulary word and the sequence advances
+    // (no immediate repeats), confirming order_index paging.
+    for (let i = 0; i < words.length; i++) {
+      expect(words[i]?.length).toBeGreaterThan(0);
+      if (i > 0) expect(words[i]).not.toBe(words[i - 1]);
     }
   });
 

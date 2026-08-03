@@ -3,7 +3,7 @@
 跨平台英语单词学习助手：**单词展示 → 发音学习 → 标记已掌握 → 进度追踪**。
 
 - **v1 桌面版**：Windows（Tauri），同一套代码可扩展到 Mac / Linux / Web / 移动端
-- **词库丰富**：高考英语、考研英语、生活英语等多个词库可选
+- **词库丰富**：高考、考研、四级、六级等真实词库（ECDICT 开源词库，MIT）可选
 - **学习高效**：小窗口可置顶，随时随地学习
 
 > 详细设计见 [`specs/requirements.md`](../specs/requirements.md)、[`docs/architecture.md`](../docs/architecture.md)。
@@ -68,7 +68,7 @@ npm run dev
 ## 使用流程
 
 1. 🔐 **登录**：注册账号或登录已有账号
-2. 📚 **选择词库**：高考英语、考研英语、生活英语等
+2. 📚 **选择词库**：高考英语、考研英语、四级英语、六级英语等
 3. 📖 **学习单词**：查看拼写、发音、音标
 4. ✅ **标记掌握**：认识的单词打勾，系统记录进度
 5. 📊 **查看进度**：已学/未学单词统计
@@ -104,7 +104,9 @@ backend/                  Python FastAPI 服务端
 
 ## 如何扩展
 
-**添加新词库**：在数据库 `word_banks` 表中添加新词库，`words` 表添加单词数据。
+**添加新词库**：向 `backend/data/wordbanks/` 新增一份词库 JSON（可用
+`scripts/build_wordbanks.py` 从 ECDICT 按标签生成），运行 `python backend/init_db.py`
+幂等种子化。种子为数据文件驱动，CI/离线可复现，运行时无网络依赖。
 
 **支持新平台**：在 `src/adapters/` 新增一个适配器实现 `PlatformAdapter` 接口
 （如 React Native），业务层代码无需改动。
