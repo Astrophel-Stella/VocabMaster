@@ -9,7 +9,7 @@ import { usePronunciation } from '../hooks/usePronunciation';
 import { useUserStore } from '../stores/userStore';
 
 export function WordCard() {
-  const { currentWord, currentWordIndex, totalWords, nextWord, prevWord, goToWord, isLoadingWords } = useWords();
+  const { currentWord, currentWordIndex, totalWords, words, nextWord, prevWord, goToWord, isLoadingWords } = useWords();
   const { toggleMastered, isWordMastered, progressStats, isLoading: isProgressLoading } = useProgress();
   const { status: pronunciationStatus, error: pronunciationError, play: playPronunciation, stop: stopPronunciation, currentWordId: playingWordId } = usePronunciation();
   const { isAuthenticated } = useUserStore();
@@ -208,7 +208,7 @@ export function WordCard() {
 
           <button
             onClick={nextWord}
-            disabled={currentWordIndex === totalWords - 1}
+            disabled={currentWordIndex >= words.length - 1}
             className="flex-1 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all font-medium shadow-lg shadow-indigo-200/50 flex items-center justify-center gap-2"
           >
             下一个
@@ -221,7 +221,7 @@ export function WordCard() {
 
       {/* Word Navigation Dots */}
       <div className="flex justify-center gap-1.5 mt-8 flex-wrap">
-        {Array.from({ length: Math.min(totalWords, 50) }, (_, i) => (
+        {Array.from({ length: Math.min(words.length, 50) }, (_, i) => (
           <button
             key={i}
             onClick={() => goToWord(i)}

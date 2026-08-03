@@ -170,6 +170,27 @@ export class WordLearningPage {
     return pressed === 'true';
   }
 
+  /**
+   * Wait until per-word progress has finished loading. The mastered-count pill
+   * ("已掌握 X / Y") only renders once progressStats is populated, and the store's
+   * `progress` array is set in the same loadProgress call — so a visible pill
+   * guarantees the mastered/unmastered toggle will decide direction correctly
+   * (otherwise a click on empty progress marks instead of unmarks).
+   */
+  async expectProgressLoaded() {
+    await expect(this.masteredCount).toBeVisible();
+  }
+
+  /** Retry until the word is shown as mastered (aria-pressed=true). */
+  async expectMastered() {
+    await expect(this.masteredButton).toHaveAttribute('aria-pressed', 'true');
+  }
+
+  /** Retry until the word is shown as not mastered (aria-pressed=false). */
+  async expectNotMastered() {
+    await expect(this.masteredButton).toHaveAttribute('aria-pressed', 'false');
+  }
+
   async expectPrevDisabled() {
     await expect(this.prevButton).toBeDisabled();
   }
