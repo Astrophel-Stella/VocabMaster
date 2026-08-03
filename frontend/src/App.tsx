@@ -36,7 +36,11 @@ export default function App() {
   // We use selectedWordBank?.id (primitive value) instead of the object.
   useEffect(() => {
     if (selectedWordBank) {
-      loadWords(selectedWordBank.id, 0, 100);
+      // Load a focused session of the 50 highest-frequency words. This keeps the
+      // navigable set, the nav-dot strip, and the "last word" boundary coherent
+      // (words.length === dots shown). The full bank stays imported in the DB;
+      // the "+N 更多" hint reports the remaining count.
+      loadWords(selectedWordBank.id, 0, 50);
       if (isAuthenticated) {
         loadProgress(selectedWordBank.id);
       }

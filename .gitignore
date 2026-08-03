@@ -3,6 +3,11 @@ node_modules
 dist
 dist-ssr
 
+# Python
+__pycache__/
+*.py[cod]
+venv/
+
 # 环境 / 密钥（密钥仅存本地，勿提交）
 .env
 .env.local

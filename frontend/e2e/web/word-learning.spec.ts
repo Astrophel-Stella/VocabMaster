@@ -38,13 +38,14 @@ test.describe('Word Learning - REQ-UI-003 / REQ-WB-002 / REQ-WORD', () => {
     // Both cases are valid
   });
 
-  test('REQ-WORD-001: First word is "abandon" (alphabetically sorted)', async ({ page }) => {
+  test('REQ-WORD-001: First word is "the" (highest frequency first)', async ({ page }) => {
     const wordLearningPage = new WordLearningPage(page);
     await wordLearningPage.expectLoaded();
 
-    // The first word should be "abandon" (sorted by order_index which is alphabetical)
+    // Words are ordered by corpus frequency (order_index ascending), so the
+    // most common English word "the" leads the 高考英语 bank.
     const spelling = await wordLearningPage.wordSpelling.textContent();
-    expect(spelling?.toLowerCase()).toBe('abandon');
+    expect(spelling?.toLowerCase()).toBe('the');
   });
 
   test('REQ-WORD-001: All word card elements are present', async ({ page }) => {
@@ -149,11 +150,12 @@ test.describe('Word Learning - REQ-UI-003 / REQ-WB-002 / REQ-WORD', () => {
     const wordLearningPage = new WordLearningPage(page);
     await wordLearningPage.expectLoaded();
 
-    // First word should be "abandon" (sorted alphabetically)
+    // First word should be "the" (ordered by corpus frequency, most common first)
     const firstWord = await wordLearningPage.wordSpelling.textContent();
-    expect(firstWord?.toLowerCase()).toBe('abandon');
+    expect(firstWord?.toLowerCase()).toBe('the');
 
-    // Navigate through first 5 words and verify alphabetical order
+    // Navigate through the first 5 words and verify each is served in a stable,
+    // gap-free order (non-empty and distinct spellings).
     const words: string[] = [firstWord!.toLowerCase()];
 
     for (let i = 0; i < 4; i++) {
@@ -165,10 +167,11 @@ test.describe('Word Learning - REQ-UI-003 / REQ-WB-002 / REQ-WORD', () => {
       }
     }
 
-    // Verify words are in alphabetical order
-    for (let i = 1; i < words.length; i++) {
-      expect(words[i] >= words[i - 1]).toBe(true);
+    // Every word slot is populated and no spelling repeats within the sequence.
+    for (const word of words) {
+      expect(word).toBeTruthy();
     }
+    expect(new Set(words).size).toBe(words.length);
   });
 
   test('REQ-UI-003: Return button navigates back to word bank selection', async ({ page }) => {

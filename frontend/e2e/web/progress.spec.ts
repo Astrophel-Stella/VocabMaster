@@ -16,6 +16,7 @@ test.describe('Progress Statistics - REQ-UI-004 / REQ-PROG', () => {
   test('REQ-PROG-004: Progress bar shows correct format N/total and M/total', async ({ page }) => {
     const wordLearningPage = new WordLearningPage(page);
     await wordLearningPage.expectLoaded();
+    await wordLearningPage.expectProgressLoaded();
 
     // Get progress text - new UI shows progress as styled numbers
     const progress = await wordLearningPage.getCurrentProgress();
@@ -33,67 +34,65 @@ test.describe('Progress Statistics - REQ-UI-004 / REQ-PROG', () => {
   test('REQ-PROG-001: Mark as mastered updates UI and stats', async ({ page }) => {
     const wordLearningPage = new WordLearningPage(page);
     await wordLearningPage.expectLoaded();
+    // Progress must be loaded before toggling, otherwise the toggle would decide
+    // its direction from an empty progress array.
+    await wordLearningPage.expectProgressLoaded();
 
-    // First, ensure word is NOT mastered (force unmark if needed)
-    const isMastered = await wordLearningPage.isMastered();
-    if (isMastered) {
+    // First, ensure word is NOT mastered (force unmark if needed), and wait for
+    // that precondition to settle before capturing the baseline.
+    if (await wordLearningPage.isMastered()) {
       await wordLearningPage.toggleMastered();
-      await page.waitForTimeout(500);
+      await wordLearningPage.expectNotMastered();
     }
 
-    // Get initial mastered count
+    // Get initial mastered count (now guaranteed unmastered)
     const initialMastered = await wordLearningPage.getMasteredCount();
 
     // Click mastered button (now guaranteed to be unmastered)
     await wordLearningPage.toggleMastered();
-    await page.waitForTimeout(500); // Wait for API
 
-    // Verify button shows mastered state
-    const isNowMastered = await wordLearningPage.isMastered();
-    expect(isNowMastered).toBe(true);
+    // Verify button shows mastered state (retries until the API round-trip lands)
+    await wordLearningPage.expectMastered();
 
     // Verify stats updated
-    const newMastered = await wordLearningPage.getMasteredCount();
-    expect(newMastered!.mastered).toBe(initialMastered!.mastered + 1);
+    await expect.poll(async () => (await wordLearningPage.getMasteredCount())!.mastered)
+      .toBe(initialMastered!.mastered + 1);
   });
 
   test('REQ-PROG-002: Unmark mastered updates UI and stats', async ({ page }) => {
     const wordLearningPage = new WordLearningPage(page);
     await wordLearningPage.expectLoaded();
+    await wordLearningPage.expectProgressLoaded();
 
-    // First, ensure word is mastered
-    let isMastered = await wordLearningPage.isMastered();
-    if (!isMastered) {
+    // First, ensure word is mastered, and wait for that precondition to settle.
+    if (!(await wordLearningPage.isMastered())) {
       await wordLearningPage.toggleMastered();
-      await page.waitForTimeout(500);
-      isMastered = true;
+      await wordLearningPage.expectMastered();
     }
 
-    // Get current mastered count
+    // Get current mastered count (now guaranteed mastered)
     const masteredBeforeUnmark = await wordLearningPage.getMasteredCount();
 
     // Unmark
     await wordLearningPage.toggleMastered();
-    await page.waitForTimeout(500);
 
-    // Verify button shows unmarked state
-    const isNowUnmarked = await wordLearningPage.isMastered();
-    expect(isNowUnmarked).toBe(false);
+    // Verify button shows unmarked state (retries until the API round-trip lands)
+    await wordLearningPage.expectNotMastered();
 
     // Verify stats updated
-    const newMastered = await wordLearningPage.getMasteredCount();
-    expect(newMastered!.mastered).toBe(masteredBeforeUnmark!.mastered - 1);
+    await expect.poll(async () => (await wordLearningPage.getMasteredCount())!.mastered)
+      .toBe(masteredBeforeUnmark!.mastered - 1);
   });
 
   test('REQ-PROG-003: Progress persists across word navigation', async ({ page }) => {
     const wordLearningPage = new WordLearningPage(page);
     await wordLearningPage.expectLoaded();
+    await wordLearningPage.expectProgressLoaded();
 
-    // Mark first word as mastered
-    const isMastered = await wordLearningPage.isMastered();
-    if (!isMastered) {
+    // Mark first word as mastered, waiting for the state to settle.
+    if (!(await wordLearningPage.isMastered())) {
       await wordLearningPage.toggleMastered();
-      await page.waitForTimeout(500);
+      await wordLearningPage.expectMastered();
     }
 
     const firstWordSpelling = await wordLearningPage.wordSpelling.textContent();
@@ -101,19 +100,16 @@ test.describe('Progress Statistics - REQ-UI-004 / REQ-PROG', () => {
 
     // Navigate to second word
     await wordLearningPage.goToNext();
-    await page.waitForTimeout(300);
+    await expect(wordLearningPage.prevButton).toBeEnabled();
 
     // Navigate back to first word
     await wordLearningPage.goToPrevious();
-    await page.waitForTimeout(300);
 
     // Verify we're back at the first word
-    const currentWord = await wordLearningPage.wordSpelling.textContent();
-    expect(currentWord).toBe(firstWordSpelling);
+    await expect(wordLearningPage.wordSpelling).toHaveText(firstWordSpelling!);
 
     // Verify mastered state is preserved
-    const isStillMastered = await wordLearningPage.isMastered();
-    expect(isStillMastered).toBe(true);
+    await wordLearningPage.expectMastered();
 
     // Verify stats are the same
     const masteredCountAfterNav = await wordLearningPage.getMasteredCount();

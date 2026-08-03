@@ -1,0 +1,26 @@
+{
+ "banks": [
+  {
+   "slug": "gaokao",
+   "name": "高考英语",
+   "count": 3677
+  },
+  {
+   "slug": "cet4",
+   "name": "大学英语四级",
+   "count": 3849
+  },
+  {
+   "slug": "cet6",
+   "name": "大学英语六级",
+   "count": 5407
+  },
+  {
+   "slug": "kaoyan",
+   "name": "考研英语",
+   "count": 4801
+  }
+ ],
+ "source": "skywind3000/ECDICT (https://github.com/skywind3000/ECDICT)",
+ "license": "MIT"
+}
