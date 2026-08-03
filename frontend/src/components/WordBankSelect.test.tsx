@@ -7,6 +7,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { WordBankSelect } from './WordBankSelect';
 import { useWords } from '../hooks/useWords';
+import { useOverview } from '../hooks/useOverview';
 
 // Import jest-dom matchers
 import '@testing-library/jest-dom/vitest';
@@ -14,6 +15,11 @@ import '@testing-library/jest-dom/vitest';
 // Mock the useWords hook
 vi.mock('../hooks/useWords', () => ({
   useWords: vi.fn(),
+}));
+
+// Mock the useOverview hook (REQ-UI-005 Hero overview)
+vi.mock('../hooks/useOverview', () => ({
+  useOverview: vi.fn(),
 }));
 
 describe('WordBankSelect Component - REQ-UI-002', () => {
@@ -40,6 +46,13 @@ describe('WordBankSelect Component - REQ-UI-002', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: no aggregate overview loaded (component falls back to bank-derived stats)
+    vi.mocked(useOverview).mockReturnValue({
+      overview: null,
+      isLoading: false,
+      error: null,
+      loadOverview: vi.fn(),
+    });
   });
 
   describe('REQ-UI-002: Word Bank List Rendering', () => {
@@ -136,6 +149,65 @@ describe('WordBankSelect Component - REQ-UI-002', () => {
 
       // No buttons rendered
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('REQ-UI-005: Hero + Overall Progress Overview', () => {
+    const mockBanks = [
+      { id: 1, name: '高考英语', description: '高考英语核心词汇', total_words: 3500 },
+      { id: 2, name: '考研英语', description: '考研英语核心词汇', total_words: 5500 },
+    ];
+
+    it('REQ-UI-005: renders the Hero brand section and progress overview panel', () => {
+      vi.mocked(useWords).mockReturnValue({ ...mockUseWordsReturn, wordBanks: mockBanks });
+
+      render(<WordBankSelect />);
+
+      expect(screen.getByRole('heading', { name: /继续你的单词之旅/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /整体学习进度/i })).toBeInTheDocument();
+      // Grid section heading is still present (contract with existing tests)
+      expect(screen.getByRole('heading', { name: /选择词库/i })).toBeInTheDocument();
+    });
+
+    it('REQ-UI-005: reflects aggregate overview stats in the progress bar', () => {
+      vi.mocked(useWords).mockReturnValue({ ...mockUseWordsReturn, wordBanks: mockBanks });
+      vi.mocked(useOverview).mockReturnValue({
+        overview: { total_words: 9000, mastered_words: 2250, progress_percentage: 25, total_banks: 2 },
+        isLoading: false,
+        error: null,
+        loadOverview: vi.fn(),
+      });
+
+      render(<WordBankSelect />);
+
+      const progressbar = screen.getByRole('progressbar', { name: /整体学习进度/i });
+      expect(progressbar).toHaveAttribute('aria-valuenow', '25');
+      expect(progressbar).toHaveAttribute('aria-valuemax', '100');
+      expect(screen.getByText('25%')).toBeInTheDocument();
+      // "已掌握 2,250 / 9,000 个单词"
+      expect(screen.getByText(/个单词$/)).toBeInTheDocument();
+    });
+
+    it('REQ-UI-005: falls back to bank-derived totals when no overview is loaded', () => {
+      vi.mocked(useWords).mockReturnValue({ ...mockUseWordsReturn, wordBanks: mockBanks });
+      // useOverview default (null) is set in beforeEach
+
+      render(<WordBankSelect />);
+
+      // With no overview, mastery is 0% but total words are summed from the banks (3500 + 5500)
+      const progressbar = screen.getByRole('progressbar', { name: /整体学习进度/i });
+      expect(progressbar).toHaveAttribute('aria-valuenow', '0');
+    });
+
+    it('REQ-UI-005: word bank cards expose an accessible "开始学习" call to action', () => {
+      vi.mocked(useWords).mockReturnValue({ ...mockUseWordsReturn, wordBanks: mockBanks });
+
+      render(<WordBankSelect />);
+
+      // CTA text present on each card
+      expect(screen.getAllByText('开始学习')).toHaveLength(mockBanks.length);
+      // Cards are native buttons (keyboard reachable) and named by bank
+      expect(screen.getByRole('button', { name: /高考英语/i })).toBeInTheDocument();
     });
   });
 });

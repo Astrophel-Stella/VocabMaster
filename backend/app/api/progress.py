@@ -9,7 +9,7 @@ from typing import List
 from app.database import get_db
 from app.api.auth import get_current_user
 from app.models.user import User
-from app.models.word import Word
+from app.models.word import Word, WordBank
 from app.models.progress import LearningProgress
 
 router = APIRouter(prefix="/api/progress", tags=["progress"])
@@ -31,7 +31,51 @@ class ProgressStats(BaseModel):
     progress_percentage: float
 
 
+class ProgressOverview(BaseModel):
+    """Aggregate learning progress across all word banks for the current user."""
+    total_words: int
+    mastered_words: int
+    progress_percentage: float
+    total_banks: int
+
+
 # API endpoints
+# NOTE: This literal route MUST be declared before the "/{word_bank_id}" routes
+# below. FastAPI matches routes top-down, and "/{word_bank_id}" expects an int;
+# if it came first, a request to "/api/progress/overview" would try to coerce
+# "overview" into an int and fail with 422 instead of hitting this handler.
+@router.get("/overview", response_model=ProgressOverview)
+def get_progress_overview(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get overall learning progress across every word bank (REQ-UI-005).
+
+    Powers the home page Hero overview so the learner sees a single, honest
+    snapshot of how much of the whole library they have mastered.
+    """
+    # Total words across all banks
+    total_words = db.query(Word).count()
+
+    # Total mastered words for this user across all banks
+    mastered_words = db.query(LearningProgress).filter(
+        LearningProgress.user_id == current_user.id,
+        LearningProgress.is_mastered == True
+    ).count()
+
+    # Number of word banks available
+    total_banks = db.query(WordBank).count()
+
+    percentage = (mastered_words / total_words * 100) if total_words > 0 else 0
+
+    return ProgressOverview(
+        total_words=total_words,
+        mastered_words=mastered_words,
+        progress_percentage=round(percentage, 2),
+        total_banks=total_banks
+    )
+
+
 @router.get("/{word_bank_id}", response_model=List[ProgressResponse])
 def get_progress(
     word_bank_id: int,

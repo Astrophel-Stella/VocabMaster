@@ -55,6 +55,14 @@ export interface ProgressStats {
   progress_percentage: number;
 }
 
+// REQ-UI-005: Aggregate progress across all word banks (home page Hero overview)
+export interface ProgressOverview {
+  total_words: number;
+  mastered_words: number;
+  progress_percentage: number;
+  total_banks: number;
+}
+
 // Auth API
 export async function register(username: string, email: string, password: string): Promise<User> {
   const response = await apiFetch(`${API_BASE}/auth/register`, {
@@ -194,6 +202,19 @@ export async function getProgressStats(wordBankId: number, token: string): Promi
 
   if (!response.ok) {
     throw new Error('Failed to get progress stats');
+  }
+
+  return response.json();
+}
+
+// REQ-UI-005: Overall learning progress across all word banks
+export async function getProgressOverview(token: string): Promise<ProgressOverview> {
+  const response = await apiFetch(`${API_BASE}/progress/overview`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to get progress overview');
   }
 
   return response.json();
