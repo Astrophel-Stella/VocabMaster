@@ -96,7 +96,7 @@ test.describe('App-level functionality', () => {
     await selectFirstWordBank(page);
 
     // Check that word bank name is shown in header
-    const wordBankBadge = page.getByText(/高考英语|考研英语|生活英语/);
+    const wordBankBadge = page.getByText(/高考英语|考研英语|四级英语|六级英语/);
     await expect(wordBankBadge.first()).toBeVisible();
   });
 
