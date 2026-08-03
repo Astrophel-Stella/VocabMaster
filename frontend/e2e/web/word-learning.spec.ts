@@ -124,27 +124,36 @@ test.describe('Word Learning - REQ-UI-003 / REQ-WB-002 / REQ-WORD', () => {
     }
   });
 
-  test('REQ-WB-002: Previous button disabled at first word, Next button disabled at last word', async ({ page }) => {
+  test('REQ-WB-002 / SOU-39: first word disables Previous; full bank stays navigable past the 50-dot strip', async ({ page }) => {
     const wordLearningPage = new WordLearningPage(page);
     await wordLearningPage.expectLoaded();
+    await wordLearningPage.expectProgressLoaded();
 
-    // At first word - previous disabled
+    // At first word - previous disabled, next enabled.
     await wordLearningPage.expectPrevDisabled();
     await expect(wordLearningPage.nextButton).toBeEnabled();
 
-    // Navigate to last word by clicking dot at the end
+    // The seeded banks are full libraries (thousands of words), so the total
+    // shown is far larger than the 50-dot quick-jump strip.
+    const progress = await wordLearningPage.getCurrentProgress();
+    expect(progress!.total).toBeGreaterThan(50);
+
+    // Jump to the last *visible* dot (word ~50). Because the WHOLE bank is
+    // loaded, words remain beyond it, so Next must still be enabled. This is
+    // exactly the behaviour the old 50-word-cap regression got wrong (it made
+    // dot #50 the last word and disabled Next while the bank had thousands).
     const dots = await wordLearningPage.navigationDots.all();
     if (dots.length > 1) {
-      // Click the last visible dot
-      const lastDotIndex = Math.min(dots.length - 1, 49); // Max 50 dots shown
+      const lastDotIndex = Math.min(dots.length - 1, 49);
       await dots[lastDotIndex].click();
-      await page.waitForTimeout(300);
-
-      // At last word - next should be disabled
-      await wordLearningPage.expectNextDisabled();
+      await expect(wordLearningPage.nextButton).toBeEnabled();
       await expect(wordLearningPage.prevButton).toBeEnabled();
     }
+    // The "Next disabled at the true last word" boundary is asserted at the
+    // unit level (WordCard.test.tsx) where a tiny word list makes the final
+    // word reachable — reaching word #3677 through the UI is not practical.
   });
+
 
   test('REQ-WORD-004: Words are sorted by order_index', async ({ page }) => {
     const wordLearningPage = new WordLearningPage(page);

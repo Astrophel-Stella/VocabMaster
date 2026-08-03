@@ -35,16 +35,17 @@ def create_sample_data() -> None:
     """Seed word banks/words from data files and create the test user."""
     db: Session = SessionLocal()
     try:
+        # Reconciles the DB to the committed data files on every run (idempotent):
+        # creates missing banks, rebuilds stale word sets, drops removed banks.
         created = seed_wordbanks(db)
+        banks = db.query(WordBank).all()
+        total_words = sum(b.total_words for b in banks)
         if created:
-            banks = db.query(WordBank).all()
-            total_words = sum(b.total_words for b in banks)
-            print("✅ Word banks seeded successfully!")
-            print(f"   - {created} word banks, {total_words} words total")
-            for b in banks:
-                print(f"     · {b.name}: {b.total_words} 词")
+            print(f"✅ Word banks reconciled: {created} created, {len(banks)} total, {total_words} words")
         else:
-            print("⚠️  Database already has word banks, skipping seed")
+            print(f"✅ Word banks already up to date: {len(banks)} banks, {total_words} words")
+        for b in banks:
+            print(f"     · {b.name}: {b.total_words} 词")
 
         create_test_user(db)
     except Exception as e:

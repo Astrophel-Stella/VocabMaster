@@ -123,3 +123,101 @@ class TestSeededApi:
         words = resp.json()["words"]
         assert words[0]["spelling"] == "the"
         assert all(w["meaning"] for w in words)
+
+
+class TestSeedReconcilesBrownfield:
+    """SOU-39 regression: a DB that already holds stale/placeholder banks must be
+    reconciled to the full committed library, not skipped.
+
+    Production shipped with a persisted volume containing legacy placeholder
+    banks ("高考英语" with 3 words, "生活英语" with 2). The old "skip if any bank
+    exists" guard meant every deploy left that near-empty data in place. Seeding
+    must now self-heal: fill the real banks, drop removed ones, keep progress.
+    """
+
+    def _make_stale_db(self, db: Session):
+        """Recreate the exact production placeholder state."""
+        gaokao = WordBank(name="高考英语", description="高考英语核心词汇", total_words=3)
+        life = WordBank(name="生活英语", description="日常生活常用词汇", total_words=2)
+        db.add_all([gaokao, life])
+        db.flush()
+        # 高考英语 includes "the" (a spelling that also exists in the real data)
+        db.add_all([
+            Word(word_bank_id=gaokao.id, spelling="the", meaning="占位", order_index=1),
+            Word(word_bank_id=gaokao.id, spelling="placeholderword", meaning="占位", order_index=2),
+            Word(word_bank_id=gaokao.id, spelling="anotherplaceholder", meaning="占位", order_index=3),
+        ])
+        db.add_all([
+            Word(word_bank_id=life.id, spelling="hello", meaning="占位", order_index=1),
+            Word(word_bank_id=life.id, spelling="world", meaning="占位", order_index=2),
+        ])
+        db.commit()
+        return gaokao, life
+
+    def test_SOU39_reconcile_fills_placeholder_banks_and_drops_stale(self, db_session: Session):
+        self._make_stale_db(db_session)
+
+        seed_wordbanks(db_session)
+
+        banks = db_session.query(WordBank).all()
+        # Stale "生活英语" removed; the four exam banks present.
+        assert {b.name for b in banks} == EXPECTED_BANKS
+
+        for wb in banks:
+            actual = db_session.query(Word).filter(Word.word_bank_id == wb.id).count()
+            assert wb.total_words == actual, f"{wb.name}: total_words mismatch"
+            assert actual >= 2000, f"{wb.name} was not filled: {actual}"
+
+    def test_SOU39_reconcile_is_idempotent_after_healing(self, db_session: Session):
+        self._make_stale_db(db_session)
+        seed_wordbanks(db_session)
+        # A second reconcile creates nothing and keeps counts stable.
+        created = seed_wordbanks(db_session)
+        assert created == 0
+        assert db_session.query(WordBank).count() == 4
+
+    def test_SOU39_reconcile_preserves_mastery_by_spelling(self, db_session: Session):
+        """A word the user mastered before the import stays mastered after it."""
+        from app.models.user import User
+        from app.models.progress import LearningProgress
+
+        gaokao, _life = self._make_stale_db(db_session)
+        user = User(username="learner", email="l@example.com", hashed_password="x")
+        db_session.add(user)
+        db_session.flush()
+
+        the_word = (
+            db_session.query(Word)
+            .filter(Word.word_bank_id == gaokao.id, Word.spelling == "the")
+            .first()
+        )
+        db_session.add(LearningProgress(
+            user_id=user.id, word_id=the_word.id, is_mastered=True,
+        ))
+        db_session.commit()
+
+        seed_wordbanks(db_session)
+
+        # "the" still exists in the rebuilt 高考 bank, and the user's mastery of it
+        # was remapped onto the new row (not orphaned or lost).
+        new_the = (
+            db_session.query(Word)
+            .join(WordBank, Word.word_bank_id == WordBank.id)
+            .filter(WordBank.name == "高考英语", Word.spelling == "the")
+            .first()
+        )
+        assert new_the is not None
+        prog = (
+            db_session.query(LearningProgress)
+            .filter(
+                LearningProgress.user_id == user.id,
+                LearningProgress.word_id == new_the.id,
+            )
+            .first()
+        )
+        assert prog is not None and prog.is_mastered is True
+        # No dangling progress rows point at deleted words.
+        live_word_ids = {wid for (wid,) in db_session.query(Word.id).all()}
+        all_prog = db_session.query(LearningProgress).all()
+        assert all(p.word_id in live_word_ids for p in all_prog)
+
