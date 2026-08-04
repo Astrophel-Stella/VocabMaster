@@ -149,7 +149,7 @@ export function LoginPanel() {
       </div>
 
       {/* Right side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-gray-50 p-8">
+      <div className="w-full lg:w-1/2 flex items-center justify-center bg-gray-50 p-4 sm:p-8">
         <div className="w-full max-w-md">
           {/* Mobile header */}
           <div className="lg:hidden text-center mb-8">
@@ -159,7 +159,7 @@ export function LoginPanel() {
           </div>
 
           {/* Login Card */}
-          <div className="bg-white rounded-3xl shadow-lg shadow-gray-200/50 p-8">
+          <div className="bg-white rounded-3xl shadow-lg shadow-gray-200/50 p-6 sm:p-8">
             <div className="hidden lg:block mb-8">
               <h2 className="text-2xl font-bold text-gray-900">欢迎回来</h2>
               <p className="text-gray-500 mt-1">登录开始你的学习之旅</p>
