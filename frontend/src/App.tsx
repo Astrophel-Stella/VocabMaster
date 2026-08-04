@@ -46,6 +46,55 @@ function UserAvatar({ name }: { name?: string }) {
   );
 }
 
+/**
+ * Right-side header controls: user chip + change-password + logout.
+ * Shared by both header variants so they stay consistent, and responsive:
+ * on phones the username text and button labels collapse (icons only) to
+ * avoid the header overflowing a narrow viewport. Each button carries an
+ * explicit aria-label so its accessible name stays stable ("退出"/"修改密码")
+ * even when the visible label is hidden — keeping E2E selectors working.
+ */
+function HeaderControls({
+  username,
+  onChangePassword,
+  onLogout,
+}: {
+  username?: string;
+  onChangePassword: () => void;
+  onLogout: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex items-center gap-2 py-1 pl-1 pr-1 sm:pr-3 rounded-full bg-white/60 ring-1 ring-slate-200/70">
+        <UserAvatar name={username} />
+        <span className="hidden sm:inline max-w-[8rem] truncate text-sm font-medium text-slate-700">{username}</span>
+      </div>
+      <button
+        onClick={onChangePassword}
+        aria-label="修改密码"
+        title="修改密码"
+        className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/80 rounded-lg transition-all"
+      >
+        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+        </svg>
+        <span className="hidden sm:inline">修改密码</span>
+      </button>
+      <button
+        onClick={onLogout}
+        aria-label="退出"
+        title="退出"
+        className="inline-flex items-center gap-1.5 px-2.5 sm:px-4 py-2 text-sm font-semibold text-white bg-gradient-to-br from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 rounded-lg transition-all shadow-sm"
+      >
+        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        <span className="hidden sm:inline">退出</span>
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   const { isAuthenticated, user, logout } = useUserStore();
   const { selectedWordBank, reset } = useWordStore();
@@ -117,34 +166,21 @@ export default function App() {
     return (
       <AuroraBackground>
         <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/70 border-b border-white/50 shadow-sm shadow-indigo-100/40">
-          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-300/40 ring-1 ring-white/50">
+          <div className="max-w-6xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-300/40 ring-1 ring-white/50">
                 <span className="text-lg">📚</span>
               </div>
-              <div className="leading-tight">
-                <h1 className="text-[17px] font-bold tracking-tight text-slate-800">VocabMaster</h1>
+              <div className="leading-tight min-w-0">
+                <h1 className="text-[17px] font-bold tracking-tight text-slate-800 truncate">VocabMaster</h1>
                 <span className="text-[11px] font-medium text-slate-400">{platform === 'tauri' ? '桌面版' : 'Web'} · v1.0</span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 py-1 pl-1 pr-3 rounded-full bg-white/60 ring-1 ring-slate-200/70">
-                <UserAvatar name={user?.username} />
-                <span className="text-sm font-medium text-slate-700">{user?.username}</span>
-              </div>
-              <button
-                onClick={() => setShowChangePassword(true)}
-                className="px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/80 rounded-lg transition-all"
-              >
-                修改密码
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-br from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 rounded-lg transition-all shadow-sm"
-              >
-                退出
-              </button>
-            </div>
+            <HeaderControls
+              username={user?.username}
+              onChangePassword={() => setShowChangePassword(true)}
+              onLogout={handleLogout}
+            />
           </div>
         </header>
         <WordBankSelect />
@@ -173,44 +209,32 @@ export default function App() {
   return (
     <AuroraBackground>
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/70 border-b border-white/50 shadow-sm shadow-indigo-100/40">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => reset()}
-              className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100/80 pl-2 pr-3 py-1.5 rounded-lg transition-all text-sm font-medium"
+              aria-label="返回"
+              className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100/80 pl-2 pr-2 sm:pr-3 py-1.5 rounded-lg transition-all text-sm font-medium shrink-0"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              返回
+              <span className="hidden sm:inline">返回</span>
             </button>
-            <div className="w-px h-6 bg-slate-200" />
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-300/40 ring-1 ring-white/50">
+            <div className="hidden sm:block w-px h-6 bg-slate-200" />
+            <div className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-300/40 ring-1 ring-white/50">
               <span className="text-lg">📚</span>
             </div>
-            <div className="leading-tight">
-              <h1 className="text-[17px] font-bold tracking-tight text-slate-800">VocabMaster</h1>
-              <span className="text-[11px] font-medium text-indigo-500/80">{selectedWordBank.name}</span>
+            <div className="leading-tight min-w-0">
+              <h1 className="text-[17px] font-bold tracking-tight text-slate-800 truncate">VocabMaster</h1>
+              <span className="block text-[11px] font-medium text-indigo-500/80 truncate">{selectedWordBank.name}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 py-1 pl-1 pr-3 rounded-full bg-white/60 ring-1 ring-slate-200/70">
-              <UserAvatar name={user?.username} />
-              <span className="text-sm font-medium text-slate-700">{user?.username}</span>
-            </div>
-            <button
-              onClick={() => setShowChangePassword(true)}
-              className="px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/80 rounded-lg transition-all"
-            >
-              修改密码
-            </button>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-br from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 rounded-lg transition-all shadow-sm"
-            >
-              退出
-            </button>
-          </div>
+          <HeaderControls
+            username={user?.username}
+            onChangePassword={() => setShowChangePassword(true)}
+            onLogout={handleLogout}
+          />
         </div>
       </header>
       <main className="py-8 flex-1">

@@ -382,3 +382,43 @@ class TestProgressStats:
         assert data["total_words"] == 0
         assert data["mastered_words"] == 0
         assert data["progress_percentage"] == 0.0
+
+
+class TestProgressAuthContract:
+    """REQ-PROG-005: Authentication contract for progress endpoints.
+
+    Progress endpoints are user-scoped and MUST reject requests that carry no
+    (or an invalid) bearer token with HTTP 401. This is by-design: hitting e.g.
+    `/api/progress/1` straight from a browser address bar sends no Authorization
+    header, so a 401 is the correct, expected response — NOT a bug.
+
+    These negative tests were previously missing (every other test logs in
+    first), which is why the 401 behaviour was never explicitly asserted. They
+    also guard against the opposite regression: an endpoint accidentally
+    becoming public would flip these to 200 and fail loudly.
+    """
+
+    # (method, path) for every protected progress route. `1` is an arbitrary id;
+    # auth is checked before the id is ever looked up, so no fixtures are needed.
+    PROTECTED_ROUTES = [
+        ("GET", "/api/progress/1"),
+        ("GET", "/api/progress/1/stats"),
+        ("POST", "/api/progress/1"),
+        ("DELETE", "/api/progress/1"),
+    ]
+
+    @pytest.mark.parametrize("method,path", PROTECTED_ROUTES)
+    def test_REQ_PROG_005_requires_auth_returns_401(self, client: TestClient, method: str, path: str):
+        """Given no bearer token, when calling a progress endpoint, then 401 (not 200)."""
+        response = client.request(method, path)
+        assert response.status_code == 401, (
+            f"{method} {path} without a token should be 401, got {response.status_code}"
+        )
+
+    @pytest.mark.parametrize("method,path", PROTECTED_ROUTES)
+    def test_REQ_PROG_005_invalid_token_returns_401(self, client: TestClient, method: str, path: str):
+        """Given a malformed/invalid bearer token, when calling a progress endpoint, then 401."""
+        response = client.request(method, path, headers={"Authorization": "Bearer not-a-real-token"})
+        assert response.status_code == 401, (
+            f"{method} {path} with an invalid token should be 401, got {response.status_code}"
+        )

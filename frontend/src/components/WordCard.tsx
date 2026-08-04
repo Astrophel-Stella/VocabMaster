@@ -71,11 +71,11 @@ export function WordCard() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
+    <div className="max-w-3xl mx-auto p-4 sm:p-6">
       {/* Progress Section */}
       <div className="mb-8">
-        <div className="flex justify-between items-center text-sm text-gray-600 mb-3">
-          <div className="flex items-center gap-2">
+        <div className="flex justify-between items-center gap-2 text-sm text-gray-600 mb-3">
+          <div className="flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
               <span className="text-indigo-600 font-bold">{currentWordIndex + 1}</span>
             </div>
@@ -83,9 +83,9 @@ export function WordCard() {
             <span>{totalWords}</span>
           </div>
           {progressStats && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-full">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-green-700 font-medium">已掌握 {progressStats.mastered_words} / {progressStats.total_words}</span>
+            <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-50 rounded-full min-w-0">
+              <div className="w-2 h-2 shrink-0 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-green-700 font-medium truncate">已掌握 {progressStats.mastered_words} / {progressStats.total_words}</span>
             </div>
           )}
         </div>
@@ -98,11 +98,11 @@ export function WordCard() {
       </div>
 
       {/* Word Card */}
-      <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 p-8 md:p-12 border border-gray-100">
+      <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 p-5 sm:p-8 md:p-12 border border-gray-100">
         {/* Spelling with Pronunciation Button */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-3">
-            <h1 data-testid="word-spelling" className="text-5xl md:text-6xl font-bold text-gray-900 tracking-tight">{currentWord.spelling}</h1>
+          <div className="flex items-center justify-center flex-wrap gap-3 sm:gap-4 mb-3">
+            <h1 data-testid="word-spelling" className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 tracking-tight break-words max-w-full">{currentWord.spelling}</h1>
             {isAuthenticated && (
               <button
                 data-testid="pronunciation-button"
@@ -165,16 +165,17 @@ export function WordCard() {
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
           <button
             onClick={prevWord}
             disabled={currentWordIndex === 0}
+            aria-label="上一个"
             className="flex-1 py-3.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all font-medium flex items-center justify-center gap-2"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            上一个
+            <span className="hidden sm:inline">上一个</span>
           </button>
 
           {isAuthenticated && (
@@ -182,7 +183,7 @@ export function WordCard() {
               onClick={handleToggleMastered}
               disabled={isProgressLoading}
               aria-pressed={isMastered}
-              className={`px-6 py-3.5 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              className={`shrink-0 px-4 sm:px-6 py-3.5 rounded-xl font-medium transition-all flex items-center gap-2 ${
                 isMastered
                   ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-200/50'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -190,17 +191,17 @@ export function WordCard() {
             >
               {isMastered ? (
                 <>
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   已掌握
                 </>
               ) : (
                 <>
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  标记已掌握
+                  <span className="whitespace-nowrap">标记已掌握</span>
                 </>
               )}
             </button>
@@ -209,10 +210,11 @@ export function WordCard() {
           <button
             onClick={nextWord}
             disabled={currentWordIndex >= words.length - 1}
+            aria-label="下一个"
             className="flex-1 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all font-medium shadow-lg shadow-indigo-200/50 flex items-center justify-center gap-2"
           >
-            下一个
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span className="hidden sm:inline">下一个</span>
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
