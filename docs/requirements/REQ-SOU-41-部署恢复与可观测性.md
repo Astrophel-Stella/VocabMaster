@@ -4,8 +4,34 @@
 | 版本 | 日期 | 变更人 | 变更内容 |
 |------|------|--------|----------|
 | 1.0 | 2026-08-03 | 软件工程师 | 初始版本：PR #60 部署失败宕机复盘 + 回滚语法修复 + 部署可观测性硬化 |
+| 2.0 | 2026-08-04 | 软件工程师 | 经 #62 的日志采集抓到真实 traceback，确认真因是**种子数据被持久化数据卷遮蔽**（非磁盘满推断）；种子数据移出数据卷 + 复现测试 |
 
-## 背景
+## v2.0 确认真因：种子数据被持久化数据卷遮蔽
+
+#62 合并后再次部署（run `30870629789`）仍失败，但这次 #62 加的日志采集生效，**后端容器真实 traceback 首次进入 Actions 日志**，一举确认真因（不再是 v1.0 的"磁盘满"推断）：
+
+```
+vocabmaster-api  | FileNotFoundError: Word-bank index not found:
+  /app/data/wordbanks/index.json. Run scripts/build_wordbanks.py to generate seed data.
+```
+
+**根因**：种子文件曾放在 `backend/data/wordbanks/`（容器内 `/app/data/wordbanks`），而生产 `docker-compose.prod.yml` 把具名卷挂在 `backend-data:/app/data`（持久化 SQLite DB）。二者路径重叠——**棕地卷已有内容时，Docker 不会把镜像里的 `/app/data/wordbanks` 拷进已存在的卷**，种子文件在运行时被彻底遮蔽。
+
+**为何直到现在才炸**：
+- SOU-37/38 期就创建了该卷（当时镜像还没有 `wordbanks` 目录，卷里只有 DB）。
+- PR #58 用"库已存在即跳过"的 seed：DB 里有旧占位库 → 直接跳过，从不读种子文件 → 不炸。
+- PR #60 改成"按内容对账"：**每次启动都读种子文件**做比对 → 首次触发被遮蔽的路径 → `index.json` 读不到 → `init_db.py` 秒崩。
+
+**为何本地/CI 全绿却生产炸**：本地和 CI 没有那个棕地具名卷，种子文件直接可读；只有生产的持久化卷才会遮蔽。这正是"配置一致性"盲区。
+
+**修复**：种子数据是**只读静态资源**，必须与**可写、持久化**的 DB 目录物理隔离。将 `backend/data/wordbanks/` 移到 `backend/seed_data/wordbanks/`（容器内 `/app/seed_data/wordbanks`，在数据卷之外，随镜像分发）。`seed.py` 的 `DATA_DIR`、`scripts/build_wordbanks.py` 默认输出路径、相关文档同步更新。DB 仍在 `/app/data` 卷内，**用户学习进度不受影响**。
+
+### 复现测试（先红后绿）
+`backend/tests/test_seed.py::TestSeedDataOutsidePersistedVolume::test_SOU_41_seed_dir_not_under_db_volume`：断言 `DATA_DIR` 不位于持久化数据卷目录（`<backend>/data`）之内。修复前（`data/wordbanks`）断言失败=红，修复后（`seed_data/wordbanks`）通过=绿。这条不变式永久防止种子文件再被塞回数据卷路径。
+
+---
+
+## v1.0 背景
 
 PR #60（SOU-39/40 词库整库对账 + 首页 UI）合并到 master 后触发自动部署（run 30809494937），**部署失败且自动回滚未生效，生产站点完全不可访问**。
 
