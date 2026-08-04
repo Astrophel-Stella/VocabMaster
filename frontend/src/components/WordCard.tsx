@@ -67,7 +67,7 @@ export function WordCard() {
     }
 
     // Play pronunciation
-    await playPronunciation(currentWord.id, 'us');
+    await playPronunciation(currentWord.id, currentWord.spelling, 'us');
   };
 
   return (

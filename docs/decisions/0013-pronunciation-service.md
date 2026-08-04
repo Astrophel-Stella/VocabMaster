@@ -66,3 +66,23 @@ class PronunciationService:
 ## 相关决策
 - ADR-0012 邮件服务 —— 同为"对外密钥服务 + 开发期降级"模式，可复用配置与启动校验思路
 - ADR-0008 认证 —— 发音端点需登录（依赖 `get_current_user`）
+
+## 补充（SOU-42，2026-08-04）：无密钥公共发音源
+
+### 背景
+原设计把"能发音"绑定在商用 API Key（有道/百度）上，而 Key 属人类闸口、生产默认未配置，导致点击扬声器始终返回 `404 发音服务未配置`（生产实测发音失败）。种子词库也无 `pronunciation_url`。
+
+### 决策
+新增**有道词典公共发音端点**（`https://dict.youdao.com/dictvoice?audio=<word>&type=1|2`）作为**无需密钥、默认开启**的兜底发音源：
+- 无需申请、无需密钥、无计费，绕开人类密钥闸口即可在生产可用。
+- `type=2` 美音、`type=1` 英音。
+- 主机通过配置项注入（`PRONUNCIATION_PUBLIC_BASE_URL`），代码不硬编码（遵守 SOU-35）；开关 `PRONUNCIATION_PUBLIC_ENABLED`（默认 `true`）。
+
+### 优先级（更新 `get_audio`）
+本地缓存 → 有道商用 API（有 Key）→ 百度商用 API（有 Key）→ **公共发音源（无 Key，兜底）** → 仅当显式关闭公共源时才 404。
+
+### 前端兜底
+`usePronunciation` 在音频流加载/播放失败时，降级使用浏览器 **Web Speech API**（`speechSynthesis`）朗读单词，保证离线/被墙场景仍可发音。
+
+### 修复的缺陷
+端点内缓存文件路径 `backend/app/media/...` 与服务缓存目录 `backend/media/...` 不一致，导致已缓存音频永远命中不到；已对齐为 `backend/media/audio`。

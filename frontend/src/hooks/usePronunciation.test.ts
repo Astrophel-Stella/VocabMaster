@@ -57,7 +57,7 @@ describe('usePronunciation Hook - REQ-WORD-003', () => {
       const { result } = renderHook(() => usePronunciation());
 
       act(() => {
-        result.current.play(1, 'us');
+        result.current.play(1, 'hello', 'us');
       });
 
       expect(result.current.status).toBe('loading');
@@ -77,24 +77,68 @@ describe('usePronunciation Hook - REQ-WORD-003', () => {
       const { result } = renderHook(() => usePronunciation());
 
       await act(async () => {
-        await result.current.play(1, 'us');
+        await result.current.play(1, 'hello', 'us');
       });
 
       expect(result.current.status).toBe('error');
       expect(result.current.error).toBe('请先登录');
     });
 
-    it('REQ-WORD-003: should show error when pronunciation not available', async () => {
+    it('REQ-WORD-003: should show error when pronunciation not available and no speech fallback', async () => {
+      // Ensure Web Speech API is unavailable so the error surfaces
+      const original = (window as unknown as { speechSynthesis?: unknown }).speechSynthesis;
+      delete (window as unknown as { speechSynthesis?: unknown }).speechSynthesis;
+
       vi.mocked(api.getPronunciation).mockRejectedValue(new Error('发音不可用'));
 
       const { result } = renderHook(() => usePronunciation());
 
       await act(async () => {
-        await result.current.play(1, 'us');
+        await result.current.play(1, 'hello', 'us');
       });
 
       expect(result.current.status).toBe('error');
       expect(result.current.error).toBe('发音不可用');
+
+      if (original !== undefined) {
+        (window as unknown as { speechSynthesis?: unknown }).speechSynthesis = original;
+      }
+    });
+
+    it('REQ-WORD-003: should fall back to speech synthesis when audio API fails', async () => {
+      // Web Speech API available -> pronunciation should still work
+      const speak = vi.fn((utterance: { onstart?: () => void; onend?: () => void }) => {
+        utterance.onstart?.();
+        utterance.onend?.();
+      });
+      const cancel = vi.fn();
+      (window as unknown as { speechSynthesis: unknown }).speechSynthesis = { speak, cancel };
+      (globalThis as unknown as { SpeechSynthesisUtterance: unknown }).SpeechSynthesisUtterance =
+        class {
+          text: string;
+          lang = '';
+          onstart?: () => void;
+          onend?: () => void;
+          onerror?: () => void;
+          constructor(text: string) {
+            this.text = text;
+          }
+        };
+
+      vi.mocked(api.getPronunciation).mockRejectedValue(new Error('network error'));
+
+      const { result } = renderHook(() => usePronunciation());
+
+      await act(async () => {
+        await result.current.play(1, 'hello', 'us');
+      });
+
+      expect(speak).toHaveBeenCalled();
+      // Fallback speech ran to completion -> back to idle, no error surfaced
+      expect(result.current.status).toBe('idle');
+      expect(result.current.error).toBeNull();
+
+      delete (window as unknown as { speechSynthesis?: unknown }).speechSynthesis;
     });
   });
 
@@ -104,7 +148,7 @@ describe('usePronunciation Hook - REQ-WORD-003', () => {
 
       // Start playing (mock)
       act(() => {
-        result.current.play(1, 'us');
+        result.current.play(1, 'hello', 'us');
       });
 
       expect(result.current.status).toBe('loading');
@@ -130,7 +174,7 @@ describe('usePronunciation Hook - REQ-WORD-003', () => {
       const { result } = renderHook(() => usePronunciation());
 
       await act(async () => {
-        await result.current.play(1, 'uk');
+        await result.current.play(1, 'hello', 'uk');
       });
 
       expect(api.getPronunciation).toHaveBeenCalledWith(1, 'uk', mockToken);

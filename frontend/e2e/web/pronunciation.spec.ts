@@ -31,14 +31,15 @@ test.describe('Pronunciation - REQ-WORD-003', () => {
     // Wait a moment for audio to start loading
     await page.waitForTimeout(500);
 
-    // Since pronunciation API is likely not configured in test env,
-    // we should see either loading state or error message
-    // Both are acceptable for this test
+    // After clicking, the button should be loading the audio, already playing,
+    // or (if the network audio is unreachable) show an error — any of these
+    // proves the click triggered a playback attempt.
     const isLoading = await wordLearningPage.isPronunciationButtonLoading();
+    const isPlaying = await wordLearningPage.isPronunciationButtonPlaying();
     const hasError = await wordLearningPage.hasPronunciationError();
 
-    // Either loading state or error message should appear
-    expect(isLoading || hasError).toBe(true);
+    // A playback attempt should have been triggered
+    expect(isLoading || isPlaying || hasError).toBe(true);
   });
 
   test('REQ-WORD-003: Pronunciation button shows loading state when audio is loading', async ({ page }) => {
@@ -61,19 +62,19 @@ test.describe('Pronunciation - REQ-WORD-003', () => {
     expect(isLoading || hasError).toBe(true);
   });
 
-  test('REQ-WORD-003: Shows friendly error message when pronunciation service not configured', async ({ page }) => {
+  test('REQ-WORD-003: Pronunciation works without commercial API keys (SOU-42 keyless provider)', async ({ page }) => {
     const wordLearningPage = new WordLearningPage(page);
     await wordLearningPage.expectLoaded();
 
     // Click pronunciation button
     await wordLearningPage.clickPronunciation();
 
-    // Wait for response (API not configured in test env)
-    await page.waitForTimeout(1000);
+    // Wait for the request to resolve
+    await page.waitForTimeout(1500);
 
-    // Should show friendly error message
-    const hasError = await wordLearningPage.hasPronunciationError();
-    expect(hasError).toBe(true);
+    // Regression guard: the keyless public provider is enabled by default, so the
+    // old "发音服务未配置" failure must NOT appear anymore.
+    await expect(page.getByText('发音服务未配置')).toHaveCount(0);
   });
 
   test('REQ-WORD-003: Unauthenticated user cannot see pronunciation button', async ({ page }) => {
@@ -130,10 +131,12 @@ test.describe('Pronunciation - REQ-WORD-003', () => {
     await wordLearningPage.clickPronunciation();
     await page.waitForTimeout(500);
 
-    // Check for loading or error state on second word
+    // The second word should be loading, playing, or (if unreachable) error —
+    // any of these proves the click triggered a fresh playback attempt.
     const isLoading = await wordLearningPage.isPronunciationButtonLoading();
+    const isPlaying = await wordLearningPage.isPronunciationButtonPlaying();
     const hasError = await wordLearningPage.hasPronunciationError();
-    expect(isLoading || hasError).toBe(true);
+    expect(isLoading || isPlaying || hasError).toBe(true);
   });
 
   test('REQ-WORD-003: Pronunciation button has correct aria attributes for accessibility', async ({ page }) => {

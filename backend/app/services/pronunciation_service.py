@@ -3,6 +3,7 @@
 from enum import Enum
 from typing import Optional
 from pathlib import Path
+from urllib.parse import urlencode
 import hashlib
 import logging
 
@@ -40,6 +41,13 @@ class PronunciationService:
         self.youdao_app_secret = getattr(settings, 'youdao_app_secret', None)
         self.baidu_app_id = getattr(settings, 'baidu_app_id', None)
         self.baidu_secret_key = getattr(settings, 'baidu_secret_key', None)
+
+        # Keyless public provider (Youdao dictionary voice) - SOU-42
+        self.public_enabled = getattr(settings, 'pronunciation_public_enabled', True)
+        self.public_base_url = getattr(
+            settings, 'pronunciation_public_base_url',
+            'https://dict.youdao.com/dictvoice',
+        )
 
     def _ensure_cache_dirs(self):
         """Ensure cache directories exist"""
@@ -176,15 +184,34 @@ class PronunciationService:
         logger.info(f"Cached audio for '{word}' ({accent.value})")
         return f"/media/audio/{accent.value}/{word.lower()}.mp3"
 
+    def get_public_url(self, word: str, accent: Accent = Accent.US) -> Optional[str]:
+        """
+        Build a keyless public pronunciation URL (Youdao dictionary voice).
+
+        This endpoint is free and requires no API key, so pronunciation works in
+        production even when no commercial TTS key is configured (SOU-42).
+
+        type=1 -> UK accent, type=2 -> US accent.
+
+        Returns the audio URL string, or None if the public provider is disabled.
+        """
+        if not self.public_enabled or not self.public_base_url:
+            return None
+
+        voice_type = 2 if accent == Accent.US else 1
+        query = urlencode({"audio": word.lower().strip(), "type": voice_type})
+        return f"{self.public_base_url}?{query}"
+
     async def get_audio(self, word: str, accent: Accent = Accent.US) -> Optional[str]:
         """
         Get pronunciation audio URL for a word.
 
         Priority:
         1. Local cache
-        2. Youdao API
-        3. Baidu API (fallback)
-        4. None (not configured or failed)
+        2. Youdao API (keyed, cached to disk)
+        3. Baidu API (keyed fallback, cached to disk)
+        4. Youdao dictionary voice public URL (keyless, always available)
+        5. None (only if the public provider is explicitly disabled)
 
         Args:
             word: The word to get pronunciation for
@@ -202,22 +229,33 @@ class PronunciationService:
         if cached_url:
             return cached_url
 
-        # 2. Try Youdao API
+        # 2. Try Youdao API (only when a commercial key is configured)
         audio_data = await self._fetch_from_youdao(word, accent)
         if audio_data:
             return await self._cache_audio(word, accent, audio_data)
 
-        # 3. Try Baidu API as fallback
+        # 3. Try Baidu API as fallback (only when a commercial key is configured)
         audio_data = await self._fetch_from_baidu(word, accent)
         if audio_data:
             return await self._cache_audio(word, accent, audio_data)
 
-        # 4. Not available
+        # 4. Keyless public provider - guarantees pronunciation works without keys
+        public_url = self.get_public_url(word, accent)
+        if public_url:
+            return public_url
+
+        # 5. Not available (public provider disabled)
         logger.warning(f"No pronunciation available for '{word}' ({accent.value})")
         return None
 
     def is_configured(self) -> bool:
-        """Check if any pronunciation API is configured"""
+        """Check if any pronunciation provider is available.
+
+        Returns True when the keyless public provider is enabled (default) or
+        any commercial API key is configured.
+        """
+        if self.public_enabled and self.public_base_url:
+            return True
         return bool(
             self.youdao_app_key and self.youdao_app_secret
         ) or bool(

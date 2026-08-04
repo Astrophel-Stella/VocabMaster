@@ -135,9 +135,9 @@ async def get_word_pronunciation(
             detail="Word not found"
         )
 
-    # Check if pronunciation service is configured
+    # Check if pronunciation service is available (keyless public provider is
+    # enabled by default, so this only blocks when explicitly disabled)
     if not pronunciation_service.is_configured():
-        # Development mode: return friendly error without blocking
         logger.warning(f"Pronunciation service not configured (word_id={word_id})")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -153,8 +153,13 @@ async def get_word_pronunciation(
             detail="发音加载失败，请稍后重试"
         )
 
-    # Check if we have a cached file to serve directly
-    cache_path = Path(__file__).parent.parent / "media" / "audio" / accent_enum.value / f"{word.spelling.lower()}.mp3"
+    # Serve a locally cached file directly when present. The cache directory is
+    # backend/media/audio (see PronunciationService.CACHE_DIR); this path must
+    # stay in sync with it.
+    cache_path = (
+        Path(__file__).parent.parent.parent
+        / "media" / "audio" / accent_enum.value / f"{word.spelling.lower()}.mp3"
+    )
     if cache_path.exists():
         return FileResponse(
             path=cache_path,
@@ -162,5 +167,5 @@ async def get_word_pronunciation(
             filename=f"{word.spelling}_{accent}.mp3"
         )
 
-    # Otherwise return the URL
+    # Otherwise return the URL (external keyless provider or relative cache URL)
     return {"url": audio_url, "available": True, "accent": accent}

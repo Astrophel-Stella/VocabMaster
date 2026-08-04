@@ -171,8 +171,9 @@ class TestWordDetail:
 class TestPronunciation:
     """Tests for REQ-WORD-003: Pronunciation feature"""
 
-    def test_REQ_WORD_003_pronunciation_not_configured(self, client: TestClient, db_session: Session, auth_headers: dict):
-        """REQ-WORD-003: Given pronunciation API not configured, when requesting pronunciation, then return 404 with friendly message"""
+    def test_REQ_WORD_003_pronunciation_public_provider_default(self, client: TestClient, db_session: Session, auth_headers: dict):
+        """REQ-WORD-003 (SOU-42): Given no commercial key but keyless public provider enabled (default),
+        when requesting pronunciation, then return 200 with a playable audio URL."""
         wb = WordBank(name="Pronunciation Test", description="Test", total_words=1)
         db_session.add(wb)
         db_session.commit()
@@ -185,7 +186,40 @@ class TestPronunciation:
         db_session.refresh(word)
         word_id = word.id
 
-        # Request pronunciation without API configured (default env)
+        # No API key configured, but the keyless public provider is enabled by default
+        response = client.get(f"/api/words/{word_id}/pronunciation?accent=us", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["available"] is True
+        assert data["accent"] == "us"
+        # US accent -> type=2, and the requested word must be encoded in the URL
+        assert "hello" in data["url"]
+        assert "type=2" in data["url"]
+
+    def test_REQ_WORD_003_pronunciation_not_configured(self, client: TestClient, db_session: Session, auth_headers: dict, monkeypatch):
+        """REQ-WORD-003: Given NO provider available (public disabled AND no keys),
+        when requesting pronunciation, then return 404 with friendly message."""
+        from app.services.pronunciation_service import pronunciation_service
+
+        # Simulate a deployment that explicitly disables the public provider and has no keys
+        monkeypatch.setattr(pronunciation_service, "public_enabled", False)
+        monkeypatch.setattr(pronunciation_service, "youdao_app_key", None)
+        monkeypatch.setattr(pronunciation_service, "youdao_app_secret", None)
+        monkeypatch.setattr(pronunciation_service, "baidu_app_id", None)
+        monkeypatch.setattr(pronunciation_service, "baidu_secret_key", None)
+
+        wb = WordBank(name="Pronunciation Test", description="Test", total_words=1)
+        db_session.add(wb)
+        db_session.commit()
+        db_session.refresh(wb)
+
+        word = Word(word_bank_id=wb.id, spelling="hello", phonetic="/həˈloʊ/",
+                    meaning="int. 你好", example_sentence="Hello, world!", order_index=1)
+        db_session.add(word)
+        db_session.commit()
+        db_session.refresh(word)
+        word_id = word.id
+
         response = client.get(f"/api/words/{word_id}/pronunciation?accent=us", headers=auth_headers)
         assert response.status_code == 404
         assert "发音服务未配置" in response.json()["detail"]
@@ -229,3 +263,24 @@ class TestPronunciation:
 
         response = client.get(f"/api/words/{word_id}/pronunciation?accent=us")
         assert response.status_code == 401
+
+    def test_REQ_WORD_003_public_url_accent_mapping(self):
+        """REQ-WORD-003 (SOU-42): get_public_url encodes the word and maps accent to voice type."""
+        from app.services.pronunciation_service import PronunciationService, Accent
+
+        service = PronunciationService()
+        service.public_enabled = True
+        service.public_base_url = "https://dict.youdao.com/dictvoice"
+
+        us_url = service.get_public_url("Hello", Accent.US)
+        assert us_url is not None
+        assert "audio=hello" in us_url  # normalized to lowercase
+        assert "type=2" in us_url  # US -> type 2
+
+        uk_url = service.get_public_url("Hello", Accent.UK)
+        assert uk_url is not None
+        assert "type=1" in uk_url  # UK -> type 1
+
+        # Disabled provider yields no URL
+        service.public_enabled = False
+        assert service.get_public_url("hello", Accent.US) is None

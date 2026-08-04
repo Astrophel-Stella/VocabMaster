@@ -352,7 +352,7 @@ describe('WordCard Component - REQ-UI-003', () => {
 
       if (pronunciationButton) {
         await user.click(pronunciationButton);
-        expect(mockPlayPronunciation).toHaveBeenCalledWith(1, 'us');
+        expect(mockPlayPronunciation).toHaveBeenCalledWith(1, 'abandon', 'us');
       }
     });
 
