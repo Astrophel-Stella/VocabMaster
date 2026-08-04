@@ -37,11 +37,12 @@ Then  进程以非零码退出并打印明确错误，不写入半成品数据
 
 ## 技术设计
 
-- **数据文件（提交入库，可溯源）**：`backend/data/wordbanks/*.json`
+- **数据文件（提交入库，可溯源）**：`backend/seed_data/wordbanks/*.json`
   - 由 `scripts/build_wordbanks.py` 从 ECDICT 生成（按考试标签筛选 + 频率排序）。
   - 每条记录：`spelling / phonetic / meaning / example_sentence / order_index`。
+  - SOU-41 起放在 `seed_data/`（持久化数据卷 `/app/data` 之外），避免棕地卷遮蔽只读种子文件。
 - **Seed 逻辑**：`backend/app/seed.py`
-  - 数据驱动：遍历 `data/wordbanks/`，按文件建库；幂等（存在则跳过/对齐）。
+  - 数据驱动：遍历 `seed_data/wordbanks/`，按文件建库；幂等（存在则跳过/对齐）。
 - **入口**：`backend/init_db.py` 调用 seed。
 - **API**：沿用 `/api/word-banks`、`/api/words`（`order_index` 升序返回）。
 - **配置一致性**：无硬编码 host/URL/端口；DB 路径走既有配置。

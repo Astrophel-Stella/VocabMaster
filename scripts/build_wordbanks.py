@@ -6,7 +6,7 @@ Source : skywind3000/ECDICT  (ecdict.csv)  — MIT License
 
 The full ECDICT CSV (~63 MB) is *not* committed to this repo. Run this script
 once against a local copy to regenerate the seed files under
-``backend/data/wordbanks/``:
+``backend/seed_data/wordbanks/``:
 
     curl -sL -o ecdict.csv \
         https://raw.githubusercontent.com/skywind3000/ECDICT/master/ecdict.csv
@@ -141,7 +141,7 @@ def main() -> int:
     ap.add_argument("--source", default="ecdict.csv", help="path to ECDICT ecdict.csv")
     ap.add_argument(
         "--out",
-        default=str(Path(__file__).resolve().parent.parent / "backend" / "data" / "wordbanks"),
+        default=str(Path(__file__).resolve().parent.parent / "backend" / "seed_data" / "wordbanks"),
         help="output directory for seed json files",
     )
     args = ap.parse_args()

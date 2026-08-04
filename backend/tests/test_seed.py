@@ -1,13 +1,14 @@
 """Tests for word-bank seeding from committed ECDICT data (REQ-WB-004).
 
 REQ-WB-004: 导入完善开源词库
-- 从 backend/data/wordbanks/ 的开源 (ECDICT/MIT) seed 数据初始化词库
+- 从 backend/seed_data/wordbanks/ 的开源 (ECDICT/MIT) seed 数据初始化词库
 - 释义必须为真实中文，禁止占位符（如 "n. abandon"）
 - total_words 与实际单词数一致，按词频 order_index 升序
 - seed 幂等，可离线复现
 """
 
 import re
+from pathlib import Path
 
 import pytest
 from sqlalchemy.orm import Session
@@ -17,6 +18,36 @@ from app.seed import load_wordbank_files, seed_wordbanks, DATA_DIR
 
 CJK = re.compile(r"[一-鿿]")
 EXPECTED_BANKS = {"高考英语", "大学英语四级", "大学英语六级", "考研英语"}
+
+
+class TestSeedDataOutsidePersistedVolume:
+    """SOU-41 复现: 种子数据不得位于持久化数据卷之内。
+
+    生产 `docker-compose.prod.yml` 把具名卷挂在 `backend-data:/app/data`，
+    数据库 `sqlite:///./data/vocabmaster.db` 即 `/app/data/vocabmaster.db`。
+    种子文件曾放在 `/app/data/wordbanks`——与该卷挂载点重叠。棕地卷已有内容
+    时 Docker 不会把镜像里的目录拷进卷，种子文件被遮蔽，容器启动读 index.json
+    直接 FileNotFoundError 秒崩（run 30870629789 实锤）。种子是只读静态资源，
+    必须与可写、持久化的 DB 目录物理隔离。
+    """
+
+    def test_SOU_41_seed_dir_not_under_db_volume(self):
+        import app.seed as seed_module
+
+        # backend 根: app/seed.py -> app -> <backend>（容器内即 /app）。
+        # 独立于被测的 DATA_DIR 推导，避免循环断言。
+        backend_root = Path(seed_module.__file__).resolve().parents[1]
+        # 持久化卷挂载点 = <backend>/data（= /app/data，见 docker-compose.prod.yml
+        # 的 backend-data:/app/data 与 DATABASE_URL 的 ./data/vocabmaster.db）。
+        persisted_volume = (backend_root / "data").resolve()
+        seed_dir = DATA_DIR.resolve()
+        # 修复前 DATA_DIR = <backend>/data/wordbanks，位于卷内 → 断言失败（红）。
+        # 修复后 DATA_DIR = <backend>/seed_data/wordbanks，卷外 → 通过（绿）。
+        assert seed_dir != persisted_volume, "种子目录不能就是数据卷根目录"
+        assert persisted_volume not in seed_dir.parents, (
+            f"种子目录 {seed_dir} 位于持久化数据卷 {persisted_volume} 之内，"
+            f"棕地卷会遮蔽镜像内种子文件，容器启动读不到 index.json"
+        )
 
 
 class TestSeedDataFiles:
