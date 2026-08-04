@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     baidu_app_id: Optional[str] = None
     baidu_secret_key: Optional[str] = None
 
+    # Pronunciation public provider (keyless fallback - SOU-42)
+    # Youdao dictionary voice is a free, keyless public endpoint that returns
+    # an mp3 for a given word. It guarantees pronunciation works out of the box
+    # in production without provisioning any commercial API key. Configurable so
+    # the host is never hardcoded in code (SOU-35).
+    pronunciation_public_enabled: bool = True
+    pronunciation_public_base_url: str = "https://dict.youdao.com/dictvoice"
+
     class Config:
         env_file = ".env"
         case_sensitive = False
