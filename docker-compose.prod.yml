@@ -49,8 +49,10 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 10s
+      # SOU-41: 首次在棕地数据卷上做整库对账（约 1.7 万行）比"库已存在即跳过"
+      # 慢得多，放宽启动窗口，避免慢启动被误判 unhealthy 而拖垮前端依赖。
+      retries: 5
+      start_period: 40s
 
 volumes:
   backend-data:
